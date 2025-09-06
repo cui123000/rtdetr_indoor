@@ -26,7 +26,8 @@ class SceneClassifier:
             "dining room", "office", "hallway", "laundry room",
             "person", "portrait", "selfie",  # 人物相关场景
             "food", "meal", "dish", "cuisine",  # 食物相关场景
-            "restaurant", "cafe", "tableware"  # 餐饮场所
+            "restaurant", "cafe", "tableware",  # 餐饮场所
+            "cat", "dog", "pet", "animal"  # 动物相关场景
         ]
         
         # 场景描述模板
@@ -178,6 +179,17 @@ class SceneClassifier:
             "restaurant": "food",
             "cafe": "food",
             "tableware": "food",
+            
+            # 动物相关场景
+            "cat": "animal",
+            "dog": "animal",
+            "pet": "animal",
+            "animal": "animal",
+            "kitten": "animal",
+            "puppy": "animal",
+            "kitty": "animal",
+            "feline": "animal",
+            "canine": "animal",
         }
         
         # 转换为小写并尝试匹配

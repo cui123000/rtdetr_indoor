@@ -15,10 +15,7 @@ import cv2
 import traceback
 import time
 from PIL import Image
-
-# 设置matplotlib为非交互模式，避免在无显示环境下卡住
-matplotlib.use('Agg')  # 使用非交互式后端，适合无头服务器
-
+        
 import clip
 from transformers import RTDetrForObjectDetection, RTDetrImageProcessor
 
@@ -33,8 +30,9 @@ from config import MODEL_CONFIG, TRAINING_CONFIG, INFERENCE_CONFIG
 ENABLE_TRAINING = False  # 控制是否执行训练过程
 ENABLE_DETECTION = True  # 控制是否执行检测过程
 ENABLE_LOAD_MODEL = True  # 控制是否加载训练好的模型
-TEST_IMAGE_PATH = None   # 测试图像路径，None表示随机选择
-TEST_IMAGE_INDEX = -1    # 测试图像索引，-1表示随机选择
+# 直接指定测试图像的路径，如果设置了具体路径，将优先使用此路径
+TEST_IMAGE_PATH = None # 指定测试图像的路径
+TEST_IMAGE_INDEX = -1     # 指定数据集中的图像索引，0表示使用第一张图像（仅在TEST_IMAGE_PATH为None时生效）
 
 # 可选的命令行参数解析
 def select_random_test_image(images, image_root, index=None):
@@ -250,29 +248,17 @@ def run_detection(clip_model, rtdetr_model, image_processor, clip_preprocess, de
         scene_context = scene_classifier.get_scene_type(scene_type)
         print(f"🏠 识别场景: {scene_type} (场景类型: {scene_context}, 置信度: {scene_score:.3f})")
         
-        # 如果检测到人物场景，进行特殊处理
-        is_person_scene = scene_type.lower() in ["person", "portrait", "selfie"] or scene_score < 0.3
-        if is_person_scene:
-            print("🧑 检测到人物场景，应用特殊优化处理")
-        
-        # 根据场景类型运行检测
+        # 根据场景类型运行检测，但不设置特殊优先级
         print("\n🔍 开始物体检测...")
         # 使用大类别检测模式
         use_macro_categories = True  # 默认启用大类别模式
         
-        # 基于场景类型选择检测模式
-        if is_person_scene:
-            print("👤 人物场景检测模式: 优先检测人物，抑制不相关物体")
-            detect_image = enhanced_image if enhanced_image else test_image_path
-            result = detector.detect_objects(detect_image, scene_type="person", use_macro_categories=use_macro_categories)
-        # 检查是否为食物场景
-        elif scene_type.lower() in ["food", "meal", "dish", "cuisine", "restaurant", "cafe"]:
-            print("🍲 食物场景检测模式: 优先检测食物和餐具，抑制不相关物体")
-            detect_image = enhanced_image if enhanced_image else test_image_path
-            result = detector.detect_objects(detect_image, scene_type="food", use_macro_categories=use_macro_categories)
-        else:
-            detect_image = enhanced_image if enhanced_image else test_image_path
-            result = detector.detect_objects(detect_image, scene_type=scene_context, use_macro_categories=use_macro_categories)
+        # 简化场景类型处理，不设优先级
+        print(f"� 使用识别的场景类型: {scene_type}")
+        
+        # 直接使用场景分类器识别的场景类型
+        detect_image = enhanced_image if enhanced_image else test_image_path
+        result = detector.detect_objects(detect_image, scene_type=scene_type, use_macro_categories=use_macro_categories)
         
         # 保存检测结果
         if result:

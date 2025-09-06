@@ -38,8 +38,10 @@ __pycache__/
 /mit_indoor_data_subset/
 /sun_data/
 /SUN397/
-/src/RT-DETR
-/src/vild_og
+/RT-DETR/
+/ultralytics/
+/MobileNetV4/
+/src/vild_og/
 # 只跟踪代码、配置和文档
 !src/
 !data/*.py

@@ -102,14 +102,18 @@ class FixedViLDDetector:
             
         print(f"🔧 检测器参数: 相似度阈值={self.similarity_threshold:.2f}, 检测阈值={self.detection_threshold:.2f}")
         
-        # 室内类别集合（基础类别）
+        # 室内类别集合（基础类别）- 将person和动物类别放在前面提高检测优先级
         self.base_categories = [
+            # 人物和动物放在最前面提高检测优先级
+            'person', 'cat', 'dog', 'kitten', 'puppy', 'pet', 'animal',
+            
+            # 家具和常见室内物品
             'chair', 'table', 'bed', 'sofa', 'lamp', 'cabinet', 'door', 'window',
             'mirror', 'picture', 'book', 'bottle', 'cup', 'bowl', 'clock',
             'plant', 'television', 'refrigerator', 'microwave', 'toilet', 'sink',
             'towel', 'pillow', 'curtains', 'rug', 'shower', 'bathtub', 'shelf',
             'counter', 'desk', 'wardrobe', 'nightstand', 'computer', 'monitor',
-            'glass', 'plate', 'tree', 'person', 'wine glass', 'fork', 'knife', 'spoon'
+            'glass', 'plate', 'tree', 'wine glass', 'fork', 'knife', 'spoon'
         ]
         
         # 使用基础类别初始化当前活动类别
@@ -124,7 +128,8 @@ class FixedViLDDetector:
             'dining_room': ['table', 'chair', 'bottle', 'cup', 'glass', 'plate', 'fork', 'knife', 'spoon', 'bowl'],
             'outdoor': ['tree', 'chair', 'table', 'bottle', 'glass', 'cup', 'person', 'plant'],
             'person': ['person'],  # 人物场景主要识别人
-            'food': ['bowl', 'plate', 'fork', 'knife', 'spoon', 'cup', 'glass', 'bottle', 'food']  # 食物场景
+            'food': ['bowl', 'plate', 'fork', 'knife', 'spoon', 'cup', 'glass', 'bottle', 'food'],  # 食物场景
+            'animal': ['cat', 'dog', 'kitten', 'puppy', 'pet', 'animal', 'bird', 'fish', 'hamster', 'rabbit']  # 动物场景
         }
         
         # 开放词汇支持
@@ -168,6 +173,7 @@ class FixedViLDDetector:
     
     def map_to_macro_category(self, label):
         """将细粒度标签映射到大类别"""
+        # 标准映射，不做特殊处理
         # 查找标签所属的大类别
         for macro_cat, items in self.macro_categories.items():
             if label.lower() in [item.lower() for item in items]:
@@ -180,6 +186,17 @@ class FixedViLDDetector:
         """加载CLIP词汇表"""
         # 常见室内物体的扩展词汇表
         extended_vocabulary = [
+            # 动物相关（优先添加）
+            "cat", "dog", "kitten", "puppy", "pet", "animal", "domestic cat", "house cat",
+            "tabby cat", "calico cat", "siamese cat", "persian cat", "short hair cat", "long hair cat",
+            "feline", "canine", "domestic dog", "pet dog", "bird", "fish", "rabbit", "hamster",
+            "guinea pig", "gerbil", "mouse", "rat", "turtle", "reptile", "amphibian",
+            
+            # 人物相关（增加更多人物词汇）
+            "person", "human", "man", "woman", "child", "boy", "girl", "adult", "people",
+            "baby", "toddler", "kid", "teen", "teenager", "youth", "elderly", "senior",
+            "student", "worker", "customer", "individual", "guest", "family", "group",
+            
             # 家具类
             "armchair", "bench", "bookshelf", "bunk bed", "coffee table", "dining table",
             "dresser", "end table", "filing cabinet", "footstool", "futon", "loveseat",
@@ -484,79 +501,6 @@ class FixedViLDDetector:
         # 修改相似度分数
         modified_matrix = similarity_matrix.clone()
         boost_factor = 0.20  # 提高到20%提升
-        
-        # 人物场景特殊处理 - 更高的提升因子
-        if scene_type == "person":
-            boost_factor = 0.40  # 对人物的检测提升40%
-            
-            # 对person类别进行强化
-            person_indices = [i for i, cat in enumerate(self.categories) if cat == "person"]
-            for i in range(similarity_matrix.size(0)):
-                for idx in person_indices:
-                    modified_matrix[i, idx] *= (1 + boost_factor)
-            
-            # 强烈抑制不太可能在人物肖像中出现的物体
-            highly_unlikely_categories = ['toilet', 'bathtub', 'shower', 'refrigerator', 
-                                         'microwave', 'oven', 'sink', 'bed']
-                                         
-            # 不那么强烈地抑制可能错误检测的物体
-            unlikely_categories = ['chair', 'table', 'cabinet', 'sofa']
-            
-            # 获取高度不可能的类别索引
-            highly_unlikely_indices = [i for i, cat in enumerate(self.categories) 
-                                      if cat in highly_unlikely_categories]
-            
-            # 获取不太可能的类别索引
-            unlikely_indices = [i for i, cat in enumerate(self.categories) 
-                               if cat in unlikely_categories]
-            
-            # 应用强抑制
-            for i in range(similarity_matrix.size(0)):
-                for idx in highly_unlikely_indices:
-                    modified_matrix[i, idx] *= 0.3  # 降低70%
-                
-                for idx in unlikely_indices:
-                    modified_matrix[i, idx] *= 0.5  # 降低50%
-                    
-            print(f"✅ 已应用人物场景特殊优化: 人物 +{boost_factor*100:.0f}%, 抑制不相关物体")
-            return modified_matrix
-            
-        # 食物场景特殊处理
-        if scene_type == "food":
-            boost_factor = 0.40  # 对食物相关类别提升40%
-            
-            # 食物相关类别
-            food_categories = ['bowl', 'plate', 'fork', 'knife', 'spoon', 'food']
-            if self.use_macro_categories:
-                food_categories.extend(['tableware', 'food'])
-                
-            # 加强食物相关类别
-            food_indices = [i for i, cat in enumerate(self.categories) 
-                            if any(food_cat in cat.lower() for food_cat in food_categories)]
-            
-            for i in range(similarity_matrix.size(0)):
-                for idx in food_indices:
-                    modified_matrix[i, idx] *= (1 + boost_factor)
-            
-            # 强烈抑制不太可能在食物场景中出现的物体
-            highly_unlikely_categories = ['toilet', 'bathtub', 'shower', 'bed', 'person']
-            
-            # 获取高度不可能的类别索引
-            highly_unlikely_indices = [i for i, cat in enumerate(self.categories) 
-                                      if cat in highly_unlikely_categories]
-            
-            # 应用强抑制
-            for i in range(similarity_matrix.size(0)):
-                for idx in highly_unlikely_indices:
-                    modified_matrix[i, idx] *= 0.3  # 降低70%
-                    
-            print(f"✅ 已应用食物场景特殊优化: 食物相关物品 +{boost_factor*100:.0f}%, 抑制不相关物体")
-            return modified_matrix
-        
-        # 其他场景的处理
-        for i in range(similarity_matrix.size(0)):
-            for idx in relevant_indices:
-                modified_matrix[i, idx] *= (1 + boost_factor)
                 
         # 不相关类别降低分数 - 更强的惩罚
         highly_unlikely_categories = []
@@ -590,6 +534,15 @@ class FixedViLDDetector:
         print(f"✅ 已应用 '{scene_type}' 场景优化: 相关物体 +{boost_factor*100:.0f}%, 不相关物体 -{penalty_factor*100:.0f}%, 极不可能物体 -{strong_penalty*100:.0f}%")
         return modified_matrix
     
+    def get_supported_categories(self):
+        """获取模型支持的所有类别"""
+        # 合并基础类别和CLIP词汇表
+        all_categories = set(self.base_categories + self.clip_vocabulary)
+        # 如果使用大类别分组，也添加大类别名称
+        if self.use_macro_categories and self.macro_categories:
+            all_categories.update(self.macro_categories.keys())
+        return list(all_categories)
+
     def perform_open_vocabulary_detection(self, visual_features, boxes, detection_scores):
         """执行开放词汇检测"""
         try:
