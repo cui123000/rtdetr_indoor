@@ -1,2 +1,2 @@
-# vild_rtdetr_indoor
-开放性词汇目标检测
+# rtdetr_indoor
+redetr室内目标检测
