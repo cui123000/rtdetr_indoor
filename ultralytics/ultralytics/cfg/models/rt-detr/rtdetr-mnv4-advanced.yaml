@@ -1,0 +1,85 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+
+# Ultralytics RT-DETR with Advanced MobileNetV4 Fusion Architecture
+# 高级MobileNetV4融合架构，使用标准模块实现MobileNetV4核心特性
+# Model docs: https://docs.ultralytics.com/models/rtdetr
+# Task docs: https://docs.ultralytics.com/tasks/detect
+
+# Parameters
+nc: 80 # number of classes
+scales: # model compound scaling constants
+  # [depth, width, max_channels]
+  m: [1.00, 1.00, 512]
+
+backbone:
+  # Advanced MobileNetV4 Fusion Architecture using standard modules
+  # 采用MobileNetV4的核心设计思想但使用标准模块实现
+  
+  # Stage 0 - Enhanced Stem (模拟MobileNetV4的stem设计)
+  - [-1, 1, Conv, [32, 3, 2]]        # 0-P1/2, stem conv
+  - [-1, 1, Conv, [32, 3, 1]]        # 1, additional stem conv for better feature extraction
+
+  # Stage 1 - Early Feature Extraction (模拟EdgeResidual功能)
+  - [-1, 1, Conv, [48, 3, 2]]        # 2-P2/4, downsampling
+  - [-1, 1, GhostBottleneck, [48]]   # 3, 轻量级residual block (类似EdgeResidual)
+  - [-1, 1, Conv, [48, 1, 1]]        # 4, channel adjustment
+
+  # Stage 2 - Inverted Residual Stage (模拟UniversalInvertedResidual)
+  - [-1, 1, Conv, [80, 3, 2]]        # 5-P3/8, downsampling 
+  - [-1, 2, C2f, [80]]               # 6, efficient inverted residual blocks
+  - [-1, 1, GhostBottleneck, [80]]   # 7, lightweight expansion
+  - [-1, 1, CBAM, [80]]              # 8, channel & spatial attention (模拟SE)
+
+  # Stage 3 - Multi-Scale Feature Processing (重要特征层)
+  - [-1, 1, Conv, [160, 3, 2]]       # 9-P4/16, downsampling
+  - [-1, 3, C2f, [160]]              # 10, multiple efficient blocks
+  - [-1, 1, SPPF, [160, 5]]          # 11, spatial pyramid (模拟multi-query attention)
+  - [-1, 2, C2f, [160]]              # 12, more feature processing
+  - [-1, 1, GhostBottleneck, [160]]  # 13, efficient expansion
+  - [-1, 1, CBAM, [160]]             # 14, attention mechanism
+  - [-1, 1, Conv, [160, 1, 1]]       # 15, feature refinement
+
+  # Stage 4 - High-Level Feature Extraction (重要特征层)
+  - [-1, 1, Conv, [256, 3, 2]]       # 16-P5/32, downsampling
+  - [-1, 3, C2f, [256]]              # 17, multiple processing blocks  
+  - [-1, 1, SPPF, [256, 3]]          # 18, multi-scale spatial pooling
+  - [-1, 2, C2f, [256]]              # 19, advanced feature processing
+  - [-1, 1, GhostBottleneck, [256]]  # 20, efficient expansion
+  - [-1, 1, CBAM, [256]]             # 21, attention refinement
+  - [-1, 1, Conv, [256, 1, 1]]       # 22, final feature adjustment
+
+  # Stage 5 - Feature Consolidation (模拟MobileNetV4的最终卷积)
+  - [-1, 1, Conv, [512, 1, 1]]       # 23, consolidated features
+  - [-1, 1, CBAM, [512]]             # 24, final attention mechanism
+
+head:
+  # Enhanced RT-DETR Head with MobileNetV4 features
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]] # 25 input_proj.2
+  - [-1, 1, AIFI, [1024, 8]]                      # 26 enhanced attention
+  - [-1, 1, Conv, [256, 1, 1]]                    # 27, Y5, lateral_convs.0
+
+  # FPN with MobileNetV4-inspired connections
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [15, 1, Conv, [256, 1, 1, None, 1, 1, False]] # 29 input_proj.1 (from stage 3)
+  - [[-2, -1], 1, Concat, [1]]
+  - [-1, 3, RepC3, [256]]                         # 31, enhanced fpn_blocks.0
+  - [-1, 1, Conv, [256, 1, 1]]                    # 32, Y4, lateral_convs.1
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [8, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 34 input_proj.0 (from stage 2)
+  - [[-2, -1], 1, Concat, [1]]                    # cat backbone features
+  - [-1, 3, RepC3, [256]]                         # X3 (36), enhanced fpn_blocks.1
+
+  # PAN with attention-enhanced connections
+  - [-1, 1, Conv, [256, 3, 2]]                    # 37, downsample_convs.0
+  - [[-1, 32], 1, Concat, [1]]                    # cat Y4
+  - [-1, 3, RepC3, [256]]                         # F4 (39), enhanced pan_blocks.0
+  - [-1, 1, CBAM, [256]]                          # 40, attention refinement
+
+  - [-1, 1, Conv, [256, 3, 2]]                    # 41, downsample_convs.1
+  - [[-1, 27], 1, Concat, [1]]                    # cat Y5
+  - [-1, 3, RepC3, [256]]                         # F5 (43), enhanced pan_blocks.1
+  - [-1, 1, CBAM, [256]]                          # 44, final attention
+
+  # Enhanced Detection Head
+  - [[36, 40, 44], 1, RTDETRDecoder, [nc]]        # Detect(P3, P4, P5) with enhanced features

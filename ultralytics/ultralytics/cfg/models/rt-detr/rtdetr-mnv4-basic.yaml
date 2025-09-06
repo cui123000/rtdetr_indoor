@@ -1,0 +1,69 @@
+# Ultralytics RT-DETR with Basic MobileNetV4 Features
+# 基础MobileNetV4特性，只使用最基本的标准模块
+# Model docs: https://docs.ultralytics.com/models/rtdetr
+
+# Parameters
+nc: 80 # number of classes
+scales: # model compound scaling constants
+  # [depth, width, max_channels]
+  m: [1.00, 1.00, 512]
+
+backbone:
+  # Basic MobileNetV4-inspired Architecture
+  # 只使用最稳定的标准模块
+  
+  # Stage 0 - Stem
+  - [-1, 1, Conv, [32, 3, 2]]        # 0-P1/2
+  - [-1, 1, Conv, [32, 3, 1]]        # 1
+
+  # Stage 1 - Early Features  
+  - [-1, 1, Conv, [64, 3, 2]]        # 2-P2/4
+  - [-1, 1, C2f, [64]]               # 3
+  - [-1, 1, Conv, [64, 1, 1]]        # 4
+
+  # Stage 2 - Mid Features
+  - [-1, 1, Conv, [128, 3, 2]]       # 5-P3/8
+  - [-1, 2, C2f, [128]]              # 6
+  - [-1, 1, Conv, [128, 1, 1]]       # 7
+
+  # Stage 3 - High Features (重要层)
+  - [-1, 1, Conv, [256, 3, 2]]       # 8-P4/16
+  - [-1, 2, C2f, [256]]              # 9
+  - [-1, 1, SPPF, [256, 5]]          # 10
+  - [-1, 1, Conv, [256, 1, 1]]       # 11
+
+  # Stage 4 - Final Features (重要层)
+  - [-1, 1, Conv, [512, 3, 2]]       # 12-P5/32
+  - [-1, 2, C2f, [512]]              # 13
+  - [-1, 1, SPPF, [512, 3]]          # 14
+  - [-1, 1, Conv, [512, 1, 1]]       # 15
+
+head:
+  # Standard RT-DETR Head
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]] # 16 input_proj.2
+  - [-1, 1, AIFI, [1024, 8]]                      # 17 transformer
+  - [-1, 1, Conv, [256, 1, 1]]                    # 18, Y5, lateral_convs.0
+
+  # FPN
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [11, 1, Conv, [256, 1, 1, None, 1, 1, False]] # 20 input_proj.1
+  - [[-2, -1], 1, Concat, [1]]
+  - [-1, 2, C2f, [256]]                           # 22, fpn_blocks.0
+  - [-1, 1, Conv, [256, 1, 1]]                    # 23, Y4, lateral_convs.1
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [7, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 25 input_proj.0
+  - [[-2, -1], 1, Concat, [1]]                    # cat backbone features
+  - [-1, 2, C2f, [256]]                           # X3 (27), fpn_blocks.1
+
+  # PAN
+  - [-1, 1, Conv, [256, 3, 2]]                    # 28, downsample_convs.0
+  - [[-1, 23], 1, Concat, [1]]                    # cat Y4
+  - [-1, 2, C2f, [256]]                           # F4 (30), pan_blocks.0
+
+  - [-1, 1, Conv, [256, 3, 2]]                    # 31, downsample_convs.1
+  - [[-1, 18], 1, Concat, [1]]                    # cat Y5
+  - [-1, 2, C2f, [256]]                           # F5 (33), pan_blocks.1
+
+  # Detection Head
+  - [[27, 30, 33], 1, RTDETRDecoder, [nc]]        # Detect(P3, P4, P5)

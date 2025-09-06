@@ -39,7 +39,6 @@ __pycache__/
 /sun_data/
 /SUN397/
 /RT-DETR/
-/ultralytics/
 /MobileNetV4/
 /src/vild_og/
 # 只跟踪代码、配置和文档
