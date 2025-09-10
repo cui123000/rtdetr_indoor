@@ -23,7 +23,7 @@ def test_comprehensive_model():
     print("=" * 60)
     
     # 模型配置路径
-    config_path = "/home/cui/vild_rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-comprehensive-optimized.yaml"
+    config_path = "/home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-comprehensive-optimized.yaml"
     
     print(f"📋 配置文件: {config_path}")
     
@@ -89,7 +89,7 @@ def test_training_compatibility():
     try:
         # 数据集配置
         dataset_config = {
-            'path': '/home/cui/vild_rtdetr_indoor/datasets/indoor_enhanced',
+            'path': '/home/cui/rtdetr_indoor/datasets/indoor_enhanced',
             'train': 'train',
             'val': 'val',
             'names': {0: 'object'}  # 简化的类别
@@ -102,7 +102,7 @@ def test_training_compatibility():
             yaml.dump(dataset_config, f)
         
         # 创建模型
-        config_path = "/home/cui/vild_rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-comprehensive-optimized.yaml"
+        config_path = "/home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-comprehensive-optimized.yaml"
         model = RTDETR(config_path)
         
         # 测试训练（1个epoch）

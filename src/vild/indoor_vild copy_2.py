@@ -78,7 +78,7 @@ TEST_IMAGE_INDEX = -1    # 测试图像索引，-1表示随机选择
 
 # 配置数据路径
 # 获取项目根目录
-PROJECT_ROOT = "/home/cui/vild_rtdetr_indoor"  # 直接指定绝对路径
+PROJECT_ROOT = "/home/cui/rtdetr_indoor"  # 直接指定绝对路径
 print(f"项目根目录: {PROJECT_ROOT}")
 
 # 配置数据集路径
@@ -1322,7 +1322,7 @@ def run_fixed_training():
         best_model_path = None
         
         # 创建检查点目录
-        checkpoint_dir = '/home/cui/vild_rtdetr_indoor/src/vild/checkpoints'
+        checkpoint_dir = '/home/cui/rtdetr_indoor/src/vild/checkpoints'
         os.makedirs(checkpoint_dir, exist_ok=True)
         
         # 添加训练进度追踪
@@ -2370,7 +2370,7 @@ def test_fixed_detector():
     results = fixed_detector.detect_objects(test_image_path)
     
     # 总是保存检测结果到文件，避免在WSL环境下尝试显示图形
-    checkpoint_dir = '/home/cui/vild_rtdetr_indoor/src/vild/checkpoints'
+    checkpoint_dir = '/home/cui/rtdetr_indoor/src/vild/checkpoints'
     os.makedirs(checkpoint_dir, exist_ok=True)
     detection_path = os.path.join(checkpoint_dir, f"detection_result_{os.path.basename(test_image_path)}")
     
@@ -2388,7 +2388,7 @@ def test_fixed_detector():
         print(f"⚠️ 未检测到物体，可能需要进一步调整参数")
     
     # 保存修复版投影器，替换原有训练权重
-    checkpoint_dir = '/home/cui/vild_rtdetr_indoor/src/vild/checkpoints'
+    checkpoint_dir = '/home/cui/rtdetr_indoor/src/vild/checkpoints'
     os.makedirs(checkpoint_dir, exist_ok=True)
     
     # 创建修复版投影器

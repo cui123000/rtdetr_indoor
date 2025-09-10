@@ -71,7 +71,7 @@ def select_model_version():
 
 def create_training_config(model_file, version_choice):
     """创建统一的训练配置"""
-    model_path = f'/home/cui/vild_rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/{model_file}'
+    model_path = f'/home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/{model_file}'
     
     # 统一的基础训练配置
     config = {
@@ -81,7 +81,7 @@ def create_training_config(model_file, version_choice):
         
         # 模型和数据
         'model': model_path,
-        'data': '/home/cui/vild_rtdetr_indoor/datasets/homeobjects-3K/HomeObjects-3K.yaml',
+        'data': '/home/cui/rtdetr_indoor/datasets/homeobjects-3K/HomeObjects-3K.yaml',
         
         # 统一训练参数 - 内存优化版本
         'epochs': 100,
@@ -219,7 +219,7 @@ def setup_environment():
     # 验证核心模块导入
     try:
         # 添加ultralytics路径
-        ultralytics_path = "/home/cui/vild_rtdetr_indoor/ultralytics"
+        ultralytics_path = "/home/cui/rtdetr_indoor/ultralytics"
         if ultralytics_path not in sys.path:
             sys.path.insert(0, ultralytics_path)
         
@@ -310,7 +310,7 @@ def test_model_loading(model_path):
 
 def check_model_config(model_file):
     """检查模型配置文件是否存在"""
-    model_config_path = Path(f"/home/cui/vild_rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/{model_file}")
+    model_config_path = Path(f"/home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/{model_file}")
     if not model_config_path.exists():
         print(f"❌ Model config file not found: {model_config_path}")
         return False
@@ -322,7 +322,7 @@ def check_dataset_config():
     """检查数据集配置文件是否存在"""
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
     # 检查homeobjects-3K数据集
-    dataset_config_path = Path("/home/cui/vild_rtdetr_indoor/datasets/homeobjects-3K/HomeObjects-3K.yaml")
+    dataset_config_path = Path("/home/cui/rtdetr_indoor/datasets/homeobjects-3K/HomeObjects-3K.yaml")
     if dataset_config_path.exists():
         print(f"✅ HomeObjects-3K dataset config found: {dataset_config_path}")
         return True
@@ -381,7 +381,7 @@ def main():
         sys.exit(1)
     
     # 创建训练配置
-    model_path = f'/home/cui/vild_rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/{selected_file}'
+    model_path = f'/home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/{selected_file}'
     
     # 测试模型加载
     if not test_model_loading(model_path):

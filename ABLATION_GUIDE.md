@@ -202,7 +202,7 @@ watch -n 1 nvidia-smi
 ## 📁 文件结构
 
 ```
-vild_rtdetr_indoor/
+rtdetr_indoor/
 ├── 配置文件
 │   ├── rtdetr-mnv4-hybrid-m-sea-lite.yaml
 │   └── rtdetr-mnv4-phase2-enhanced.yaml

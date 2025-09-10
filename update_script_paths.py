@@ -31,12 +31,10 @@ def update_file_references():
     }
     
     # 需要检查的目录
-    search_dirs = [
-        '/home/cui/vild_rtdetr_indoor/scripts',
-        '/home/cui/vild_rtdetr_indoor/docs'
-    ]
-    
-    # 需要检查的文件类型
+    directories = [
+        '/home/cui/rtdetr_indoor/scripts',
+        '/home/cui/rtdetr_indoor/docs'
+    ]    # 需要检查的文件类型
     file_extensions = ['.py', '.md', '.yaml', '.yml', '.sh']
     
     updated_files = []
@@ -89,9 +87,9 @@ def update_file_references():
 
 def update_guide_files():
     """更新指南文件中的路径"""
-    guide_files = [
-        '/home/cui/vild_rtdetr_indoor/ABLATION_GUIDE.md',
-        '/home/cui/vild_rtdetr_indoor/READY_TO_START.md'
+    additional_files = [
+        '/home/cui/rtdetr_indoor/ABLATION_GUIDE.md',
+        '/home/cui/rtdetr_indoor/READY_TO_START.md'
     ]
     
     path_updates = {

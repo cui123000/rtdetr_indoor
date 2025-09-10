@@ -1,6 +1,6 @@
 [
   {
-    "image_path": "/home/cui/vild_rtdetr_indoor/datasets/coco/train2017/000000213669.jpg",
+    "image_path": "/home/cui/rtdetr_indoor/datasets/coco/train2017/000000213669.jpg",
     "boxes": [
       [
         98.79634094238281,

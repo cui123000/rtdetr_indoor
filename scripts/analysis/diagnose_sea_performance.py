@@ -15,7 +15,7 @@ def analyze_sea_performance_degradation():
     print("=" * 60)
     
     # 读取训练结果
-    base_path = Path("/home/cui/vild_rtdetr_indoor")
+    base_path = Path("/home/cui/rtdetr_indoor")
     hybrid_path = base_path / "rtdetr_mobilenetv4_rtdetr_mnv4_hybrid_m" / "results.csv"
     sea_path = base_path / "rtdetr_mobilenetv4_rtdetr_mnv4_hybrid_m_sea" / "results.csv"
     
@@ -136,11 +136,11 @@ def analyze_sea_performance_degradation():
     # 测试模型参数量
     try:
         import sys
-        sys.path.insert(0, '/home/cui/vild_rtdetr_indoor/ultralytics')
+        sys.path.insert(0, '/home/cui/rtdetr_indoor/ultralytics')
         from ultralytics import RTDETR
         
-        hybrid_model = RTDETR('/home/cui/vild_rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-hybrid-m.yaml')
-        sea_model = RTDETR('/home/cui/vild_rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-hybrid-m-sea.yaml')
+        hybrid_model = RTDETR('/home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-hybrid-m.yaml')
+        sea_model = RTDETR('/home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-hybrid-m-sea.yaml')
         
         hybrid_params = sum(p.numel() for p in hybrid_model.model.parameters())
         sea_params = sum(p.numel() for p in sea_model.model.parameters())
@@ -216,12 +216,12 @@ def test_minimal_sea_version():
     
     try:
         import sys
-        sys.path.insert(0, '/home/cui/vild_rtdetr_indoor/ultralytics')
+        sys.path.insert(0, '/home/cui/rtdetr_indoor/ultralytics')
         from ultralytics import RTDETR
         import torch
         
         # 测试新的轻量SEA配置
-        lite_model_path = '/home/cui/vild_rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-hybrid-m-sea-lite.yaml'
+        lite_model_path = '/home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-hybrid-m-sea-lite.yaml'
         
         print("加载轻量SEA配置...")
         model = RTDETR(lite_model_path)

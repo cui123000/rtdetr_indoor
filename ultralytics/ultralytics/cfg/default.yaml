@@ -7,8 +7,8 @@ task: detect # (str) YOLO task, i.e. detect, segment, classify, pose, obb
 mode: train # (str) YOLO mode, i.e. train, val, predict, export, track, benchmark
 
 # Train settings -------------------------------------------------------------------------------------------------------
-model: /home/cui/vild_rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-hybrid-m.yaml # (str, optional) RT-DETR with MobileNetV4 model
-data: /home/cui/vild_rtdetr_indoor/datasets/homeobjects-3K/HomeObjects-3K.yaml # (str, optional) path to data file, i.e. coco8.yaml
+model: /home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-hybrid-m.yaml # (str, optional) RT-DETR with MobileNetV4 model
+data: /home/cui/rtdetr_indoor/datasets/homeobjects-3K/HomeObjects-3K.yaml # (str, optional) path to data file, i.e. coco8.yaml
 epochs: 100 # (int) number of epochs to train for
 time: # (float, optional) number of hours to train for, overrides epochs if supplied
 patience: 100 # (int) epochs to wait for no observable improvement for early stopping of training
@@ -19,7 +19,7 @@ save_period: -1 # (int) Save checkpoint every x epochs (disabled if < 1)
 cache: False # (bool) True/ram, disk or False. Use cache for data loading
 device: 0 # (int | str | list) device: CUDA device=0 or [0,1,2,3] or "cpu/mps" or -1 or [-1,-1] to auto-select idle GPUs
 workers: 4 # (int) number of worker threads for data loading (per RANK if DDP)
-project: /home/cui/vild_rtdetr_indoor/ # (str, optional) project name
+project: /home/cui/rtdetr_indoor/ # (str, optional) project name
 name: indoor_detect # (str, optional) experiment name, results saved to 'project/name' directory
 exist_ok: False # (bool) whether to overwrite existing experiment
 pretrained: True # (bool | str) whether to use a pretrained model (bool) or a model to load weights from (str)

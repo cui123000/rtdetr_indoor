@@ -48,7 +48,7 @@ SEA-Lite  +LR   +Aug   +EMA   +Loss  +Reg   Arch   Full
 
 ### 快速启动
 ```bash
-cd /home/cui/vild_rtdetr_indoor
+cd /home/cui/rtdetr_indoor
 python scripts/ablation/run_ablation_experiments.py
 ```
 

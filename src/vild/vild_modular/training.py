@@ -556,7 +556,7 @@ def run_fixed_training(clip_model, device, images, image_root):
         patience = 5
         
         # 创建检查点目录
-        checkpoint_dir = '/home/cui/vild_rtdetr_indoor/src/vild/checkpoints'
+        checkpoint_dir = '/home/cui/rtdetr_indoor/src/vild/checkpoints'
         os.makedirs(checkpoint_dir, exist_ok=True)
         
         # 开始训练

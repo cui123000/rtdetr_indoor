@@ -24,7 +24,7 @@ def test_version(name, filename):
         
         from ultralytics import RTDETR
         
-        model_path = f"/home/cui/vild_rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/{filename}"
+        model_path = f"/home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/{filename}"
         print(f"📄 文件: {filename}")
         
         if not Path(model_path).exists():

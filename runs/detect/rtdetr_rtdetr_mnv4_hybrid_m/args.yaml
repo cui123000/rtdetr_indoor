@@ -1,7 +1,7 @@
 task: detect
 mode: train
-model: /home/cui/vild_rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-hybrid-m.yaml
-data: /home/cui/vild_rtdetr_indoor/datasets/homeobjects-3K/HomeObjects-3K.yaml
+model: /home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-hybrid-m.yaml
+data: /home/cui/rtdetr_indoor/datasets/homeobjects-3K/HomeObjects-3K.yaml
 epochs: 100
 time: null
 patience: 20
@@ -102,4 +102,4 @@ auto_augment: randaugment
 erasing: 0.4
 cfg: null
 tracker: botsort.yaml
-save_dir: /home/cui/vild_rtdetr_indoor/runs/detect/rtdetr_rtdetr_mnv4_hybrid_m
+save_dir: /home/cui/rtdetr_indoor/runs/detect/rtdetr_rtdetr_mnv4_hybrid_m

@@ -41,7 +41,7 @@ __pycache__/
 /RT-DETR/
 /MobileNetV4/
 /SeaFormer/
-/run/
+/runs/
 /src/vild_og/
 # 只跟踪代码、配置和文档
 !src/
