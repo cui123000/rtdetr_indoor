@@ -1,0 +1,80 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+
+# Ultralytics RT-DETR with MobileNetV4 Hybrid Medium backbone + SEA Attention
+# Enhanced with SeaFormer's Squeeze-enhanced Axial Attention for improved mobile detection
+# Model docs: https://docs.ultralytics.com/models/rtdetr
+# Task docs: https://docs.ultralytics.com/tasks/detect
+
+# Parameters
+nc: 80 # number of classes
+scales: # model compound scaling constants
+  # [depth, width, max_channels]
+  m: [1.00, 1.00, 512]
+
+backbone:
+  # MobileNetV4 Hybrid Medium backbone with integrated SEA Attention
+  # Stage 0 - Stem: input 640x640 -> 320x320
+  - [-1, 1, Conv, [32, 3, 2]]  # 0-P1/2, stem conv
+
+  # Stage 1 - 320x320 -> 160x160  
+  - [-1, 1, EdgeResidual, [48, 2, 4]]  # 1-P2/4, FusedIB (EdgeResidual) 
+
+  # Stage 2 - 160x160 -> 80x80
+  - [-1, 1, UniversalInvertedResidual, [80, 2, 4, 5]]  # 2-P3/8, ExtraDW with k=5
+  - [-1, 1, UniversalInvertedResidual, [80, 1, 2, 3]]  # 3, ExtraDW with k=3
+  - [-1, 1, Sea_Attention_Simplified, [80]]  # 4, Optimized SEA attention for early stage
+
+  # Stage 3 - 80x80 -> 40x40 (重要的特征层，使用优化SEA注意力)
+  - [-1, 1, UniversalInvertedResidual, [160, 2, 6, 5]]  # 5-P4/16, ExtraDW with k=5
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 2, 3]]  # 6, FFN-like
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 4, 3]]  # 7, ExtraDW
+  - [-1, 1, OptimizedSEA_Attention, [160]]                    # 8, Optimized SEA attention
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 4, 5]]  # 9, ExtraDW
+  - [-1, 1, C2f, [160]]                                 # 10, MQA-like attention
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 4, 3]]  # 11, ExtraDW
+  - [-1, 1, C2f, [160]]                                 # 12, MQA-like attention
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 4, 3]]  # 13, ConvNeXt-like
+  - [-1, 1, OptimizedSEA_Attention, [160]]                    # 14, Optimized SEA attention
+  - [-1, 1, C2f, [160]]                                 # 15, MQA-like attention
+
+  # Stage 4 - 40x40 -> 20x20 (重要的特征层，使用Transformer增强SEA注意力)
+  - [-1, 1, UniversalInvertedResidual, [256, 2, 6, 5]]  # 16-P5/32, ExtraDW with k=5
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 4, 5]]  # 17, ExtraDW
+  - [-1, 1, TransformerEnhancedSEA, [256]]                    # 18, Transformer Enhanced SEA attention for high-level features
+  - [-1, 2, UniversalInvertedResidual, [256, 1, 4, 5]]  # 19, ExtraDW blocks
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 2, 3]]  # 20, FFN-like
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 2, 5]]  # 21, ExtraDW
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 2, 3]]  # 22, FFN-like
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 4, 3]]  # 23, FFN-like
+  - [-1, 1, TransformerEnhancedSEA, [256]]                    # 24, Transformer Enhanced SEA attention
+  - [-1, 1, C2f, [256]]                                 # 25, MQA attention
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 4, 3]]  # 26, ConvNeXt-like
+
+  # Final conv layer
+  - [-1, 1, Conv, [960, 1, 1]]  # 27, final conv (matches MobileNetV4)
+
+head:
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]] # 28 input_proj.2
+  - [-1, 1, AIFI, [1024, 8]]
+  - [-1, 1, Conv, [256, 1, 1]] # 30, Y5, lateral_convs.0
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [15, 1, Conv, [256, 1, 1, None, 1, 1, False]] # 32 input_proj.1 (from stage 3)
+  - [[-2, -1], 1, Concat, [1]]
+  - [-1, 3, RepC3, [256]] # 34, fpn_blocks.0
+  - [-1, 1, Conv, [256, 1, 1]] # 35, Y4, lateral_convs.1
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [4, 1, Conv, [256, 1, 1, None, 1, 1, False]] # 37 input_proj.0 (from stage 2)
+  - [[-2, -1], 1, Concat, [1]] # cat backbone P4
+  - [-1, 3, RepC3, [256]] # X3 (39), fpn_blocks.1
+
+  - [-1, 1, Conv, [256, 3, 2]] # 40, downsample_convs.0
+  - [[-1, 35], 1, Concat, [1]] # cat Y4
+  - [-1, 3, RepC3, [256]] # F4 (42), pan_blocks.0
+
+  - [-1, 1, Conv, [256, 3, 2]] # 43, downsample_convs.1
+  - [[-1, 30], 1, Concat, [1]] # cat Y5
+  - [-1, 3, RepC3, [256]] # F5 (45), pan_blocks.1
+
+  - [[39, 42, 45], 1, RTDETRDecoder, [nc]] # Detect(P3, P4, P5)

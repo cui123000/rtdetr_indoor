@@ -66,6 +66,13 @@ from ultralytics.nn.modules import (
     ResNetLayer,
     RTDETRDecoder,
     SCDown,
+    SEA_Attention,
+    SEA_Attention_Light,
+    Sea_Attention_Simplified,
+    OptimizedSEA_Attention,
+    EfficientSEA_Attention_Light,
+    TransformerEnhancedSEA,
+    create_sea_attention,
     Segment,
     TorchVision,
     UniversalInvertedResidual,
@@ -1745,6 +1752,23 @@ def parse_model(d, ch, verbose=True):
             else:
                 c2 = c1  # same channels if not specified
                 args = [c1, c2]
+        elif m in {SEA_Attention, SEA_Attention_Light, Sea_Attention_Simplified, 
+                   OptimizedSEA_Attention, EfficientSEA_Attention_Light, TransformerEnhancedSEA}:
+            # SEA Attention modules: simplified interface with just channels
+            c1 = ch[f]
+            c2 = c1  # output channels same as input channels
+            if len(args) >= 1:
+                # 如果YAML中指定了通道数，使用它；否则使用推断的通道数
+                # YAML格式: [channels] 或 [channels, additional_params...]
+                if isinstance(args[0], int) and args[0] != c1:
+                    # 如果YAML中的通道数与推断的不同，信任YAML配置
+                    args = [args[0], *args[1:]] if len(args) > 1 else [args[0]]
+                else:
+                    # 使用推断的通道数
+                    args = [c1, *args[1:]] if len(args) > 1 else [c1]
+            else:
+                # Default parameters
+                args = [c1]
         elif m is Concat:
             c2 = sum(ch[x] for x in f)
         elif m in frozenset(

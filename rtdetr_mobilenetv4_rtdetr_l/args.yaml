@@ -1,6 +1,6 @@
 task: detect
 mode: train
-model: /home/cui/vild_rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-mnv4-stable.yaml
+model: /home/cui/vild_rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/rtdetr-l.yaml
 data: /home/cui/vild_rtdetr_indoor/datasets/homeobjects-3K/HomeObjects-3K.yaml
 epochs: 100
 time: null
@@ -13,7 +13,7 @@ cache: false
 device: '0'
 workers: 4
 project: /home/cui/vild_rtdetr_indoor
-name: rtdetr_mobilenetv4_rtdetr_mnv4_stable
+name: rtdetr_mobilenetv4_rtdetr_l
 exist_ok: true
 pretrained: false
 optimizer: AdamW
@@ -102,4 +102,4 @@ auto_augment: randaugment
 erasing: 0.4
 cfg: null
 tracker: botsort.yaml
-save_dir: /home/cui/vild_rtdetr_indoor/rtdetr_mobilenetv4_rtdetr_mnv4_stable
+save_dir: /home/cui/vild_rtdetr_indoor/rtdetr_mobilenetv4_rtdetr_l
