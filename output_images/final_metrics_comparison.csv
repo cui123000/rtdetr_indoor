@@ -1,0 +1,4 @@
+,metrics/precision(B),metrics/recall(B),metrics/mAP50(B),metrics/mAP50-95(B)
+rtdetr_l,0.49498,0.50937,0.48953,0.33776
+rtdetr_mnv4_hybrid,0.56057,0.4864,0.51012,0.34069
+rtdetr_mnv4_sea,0.57487,0.49392,0.50458,0.338

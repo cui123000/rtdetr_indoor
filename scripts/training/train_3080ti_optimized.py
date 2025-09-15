@@ -21,7 +21,7 @@ sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "ultralytics"))
 
 # 全局设置训练模式版本和关机选项
-DEFAULT_TRAIN_MODE = 3  # 1: RT-DETR-L, 2: RT-DETR+MNV4, 3: RT-DETR+MNV4+SEA
+DEFAULT_TRAIN_MODE =1  # 1: RT-DETR-L, 2: RT-DETR+MNV4, 3: RT-DETR+MNV4+SEA
 SHUTDOWN_AFTER_TRAIN = True  # 设置为 True 表示训练完成后自动关机
 
 # 修复文件描述符限制问题
@@ -202,7 +202,7 @@ def get_rtx3080ti_config(model_choice):
         # 保存设置
         'save': True,
         'save_period': 20,  # 每 20 个 epoch 保存一次
-        'project': 'runs/detect',
+        'project': '/root/autodl-tmp/runs/detect',
         'name': model_config['name'],
         'exist_ok': True,
 
@@ -262,7 +262,7 @@ def train_with_rtx3080ti_optimization(model_choice):
         results = model.train(**{k: v for k, v in config.items() if k not in ['model']})
 
         print("\n🎉 训练完成!")
-        print(f"📊 最佳mAP50: {results.best_fitness}")
+        print(f"📊 最佳mAP50: {results.mean_results()[2]}")  # 使用 mean_results 方法获取 mAP50
 
         # 最终清理
         del model
