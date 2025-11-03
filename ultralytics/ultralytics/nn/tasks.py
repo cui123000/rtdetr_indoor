@@ -13,6 +13,8 @@ import torch.nn as nn
 from ultralytics.nn.autobackend import check_class_names
 from ultralytics.nn.modules import (
     AIFI,
+    ASFF,
+    ASFF_Simple,
     C1,
     C2,
     C2PSA,
@@ -20,6 +22,7 @@ from ultralytics.nn.modules import (
     C3TR,
     CBAM,
     ChannelAttention,
+    DySample,
     EdgeResidual,
     ELAN1,
     OBB,
@@ -65,6 +68,7 @@ from ultralytics.nn.modules import (
     RepVGGDW,
     ResNetLayer,
     RTDETRDecoder,
+    RTDETRBiFPNDecoder,
     SCDown,
     SEA_Attention,
     SEA_Attention_Light,
@@ -1769,6 +1773,25 @@ def parse_model(d, ch, verbose=True):
             else:
                 # Default parameters
                 args = [c1]
+        elif m.__name__ in {'ASFF', 'ASFF_Simple', 'DySample'}:
+            # ASFF/DySample modules: special handling for fusion modules
+            from ultralytics.nn.modules.fusion import ASFF, ASFF_Simple, DySample
+            if m is ASFF_Simple:
+                # ASFF_Simple(channels): takes two inputs, outputs one
+                c2 = args[0] if len(args) > 0 else 256
+                args = [c2]
+            elif m is ASFF:
+                # ASFF(level, channels): takes three inputs, outputs one
+                level = args[0] if len(args) > 0 else 0
+                c2 = args[1] if len(args) > 1 else 256
+                args = [level, c2]
+            elif m is DySample:
+                # DySample(in_channels, scale, groups)
+                c1 = ch[f]
+                c2 = args[0] if len(args) > 0 else c1
+                scale = args[1] if len(args) > 1 else 2
+                groups = args[2] if len(args) > 2 else 4
+                args = [c2, scale, groups]
         elif m is Concat:
             c2 = sum(ch[x] for x in f)
         elif m in frozenset(
@@ -1779,7 +1802,7 @@ def parse_model(d, ch, verbose=True):
                 args[2] = make_divisible(min(args[2], max_channels) * width, 8)
             if m in {Detect, YOLOEDetect, Segment, YOLOESegment, Pose, OBB}:
                 m.legacy = legacy
-        elif m is RTDETRDecoder:  # special case, channels arg must be passed in index 1
+        elif m in {RTDETRDecoder, RTDETRBiFPNDecoder}:  # special case, channels arg must be passed in index 1
             args.insert(1, [ch[x] for x in f])
         elif m is CBLinear:
             c2 = args[0]

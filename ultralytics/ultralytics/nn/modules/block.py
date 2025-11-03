@@ -52,6 +52,7 @@ __all__ = (
     "PSA",
     "SCDown",
     "TorchVision",
+    "BiFPNLite",
 )
 
 
@@ -2029,3 +2030,77 @@ class SAVPE(nn.Module):
         aggregated = score.transpose(-2, -3) @ x.reshape(B, self.c, C // self.c, -1).transpose(-1, -2)
 
         return F.normalize(aggregated.transpose(-2, -3).reshape(B, Q, -1), dim=-1, p=2)
+
+
+class BiFPNLite(nn.Module):
+    """Lightweight BiFPN implementation using depthwise separable convolutions and learnable fusion weights."""
+
+    def __init__(
+        self,
+        channels: list[int] | int,
+        out_channels: int | None = None,
+        num_layers: int = 1,
+        epsilon: float = 1e-4,
+    ) -> None:
+        """Initialize BiFPN-Lite with optional channel compression and iteration depth."""
+
+        super().__init__()
+
+        if isinstance(channels, int):
+            channels = [channels]
+        assert len(channels) >= 2, "BiFPNLite requires at least two feature levels."
+
+        self.levels = len(channels)
+        self.num_layers = max(num_layers, 1)
+        self.epsilon = epsilon
+
+        fused_channels = out_channels or channels[0]
+        self.out_channels = fused_channels
+
+        self.lateral = nn.ModuleList(
+            Conv(c, fused_channels, 1, act=False) if c != fused_channels else nn.Identity() for c in channels
+        )
+
+        self.td_convs = nn.ModuleList(self._make_sepconv(fused_channels) for _ in range(self.levels))
+        self.bu_convs = nn.ModuleList(self._make_sepconv(fused_channels) for _ in range(self.levels))
+
+        self.td_weights = nn.ParameterList(nn.Parameter(torch.ones(2)) for _ in range(self.levels - 1))
+        self.bu_weights = nn.ParameterList(nn.Parameter(torch.ones(2)) for _ in range(self.levels - 1))
+
+    @staticmethod
+    def _make_sepconv(channels: int) -> nn.Sequential:
+        """Create a depthwise separable convolution block."""
+
+        return nn.Sequential(DWConv(channels, channels, k=3), Conv(channels, channels, k=1, act=True))
+
+    def _fuse(self, tensors: list[torch.Tensor], weights: nn.Parameter, target_shape: tuple[int, int]) -> torch.Tensor:
+        """Fuse tensors with normalized weights and resize to target spatial resolution."""
+
+        resized = [F.interpolate(t, size=target_shape, mode="nearest") if t.shape[-2:] != target_shape else t for t in tensors]
+        weight = torch.relu(weights)
+        return sum(w * t for w, t in zip(weight, resized)) / (weight.sum() + self.epsilon)
+
+    def forward(self, inputs: list[torch.Tensor] | tuple[torch.Tensor, ...]) -> list[torch.Tensor]:
+        """Perform bidirectional feature fusion returning refined multi-scale features."""
+
+        if not isinstance(inputs, (list, tuple)):
+            raise TypeError(f"BiFPNLite expects list/tuple inputs, got {type(inputs)}")
+
+        feats = [proj(x) for proj, x in zip(self.lateral, inputs)]
+
+        for _ in range(self.num_layers):
+            top_down: list[torch.Tensor] = [None] * self.levels
+            top_down[-1] = self.td_convs[-1](feats[-1])
+            for i in range(self.levels - 2, -1, -1):
+                fused = self._fuse([feats[i], top_down[i + 1]], self.td_weights[i], feats[i].shape[-2:])
+                top_down[i] = self.td_convs[i](fused)
+
+            bottom_up: list[torch.Tensor] = [None] * self.levels
+            bottom_up[0] = self.bu_convs[0](top_down[0])
+            for i in range(1, self.levels):
+                fused = self._fuse([top_down[i], bottom_up[i - 1]], self.bu_weights[i - 1], top_down[i].shape[-2:])
+                bottom_up[i] = self.bu_convs[i](fused)
+
+            feats = bottom_up
+
+        return feats

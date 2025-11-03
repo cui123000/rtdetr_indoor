@@ -22,7 +22,7 @@ sys.path.insert(0, str(project_root / "ultralytics"))
 
 # 全局设置训练模式版本和关机选项
 DEFAULT_TRAIN_MODE =1  # 1: RT-DETR-L, 2: RT-DETR+MNV4, 3: RT-DETR+MNV4+SEA
-SHUTDOWN_AFTER_TRAIN = True  # 设置为 True 表示训练完成后自动关机
+SHUTDOWN_AFTER_TRAIN = False  # 设置为 True 表示训练完成后自动关机
 
 # 修复文件描述符限制问题
 def fix_file_descriptor_limit():

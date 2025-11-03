@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-10-17T14:42:09.431750",
+  "variant": "RT-DETR-MNV4",
+  "metrics": {
+    "metrics/precision(B)": 0.5235500183144873,
+    "metrics/recall(B)": 0.39254198565290116,
+    "metrics/mAP50(B)": 0.405119897287985,
+    "metrics/mAP50-95(B)": 0.2680300661307699,
+    "fitness": 0.2817390492464914,
+    "preprocess": 0.4390575222804737,
+    "inference": 6.311531620973832,
+    "loss": 0.0009831806297856613,
+    "postprocess": 0.6378660273005134
+  }
+}

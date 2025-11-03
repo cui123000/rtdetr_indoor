@@ -1,0 +1,104 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+# RT-DETR-MobileNetV4-Hybrid-Medium-SEA-ASFF-v3 object detection model
+# 平衡版本：完整三尺度ASFF + 适度轻量化，目标参数量 ~27-28M
+
+# Parameters
+nc: 67  # HomeObjects-3K number of classes
+scales: # model compound scaling constants
+  # [depth, width, max_channels]
+  m: [1.00, 1.00, 512]
+
+backbone:
+  # MobileNetV4 Hybrid Medium backbone with integrated SEA Attention
+  # Stage 0 - Stem: input 640x640 -> 320x320
+  - [-1, 1, Conv, [32, 3, 2]]  # 0-P1/2, stem conv
+
+  # Stage 1 - 320x320 -> 160x160  
+  - [-1, 1, EdgeResidual, [48, 2, 4]]  # 1-P2/4, FusedIB (EdgeResidual) 
+
+  # Stage 2 - 160x160 -> 80x80
+  - [-1, 1, UniversalInvertedResidual, [80, 2, 4, 5]]  # 2-P3/8, ExtraDW with k=5
+  - [-1, 1, UniversalInvertedResidual, [80, 1, 2, 3]]  # 3, ExtraDW with k=3
+  - [-1, 1, Sea_Attention_Simplified, [80]]  # 4, SEA attention for early stage
+
+  # Stage 3 - 80x80 -> 40x40 (重要的特征层，使用优化SEA注意力)
+  - [-1, 1, UniversalInvertedResidual, [160, 2, 6, 5]]  # 5-P4/16, ExtraDW with k=5
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 2, 3]]  # 6, FFN-like
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 4, 3]]  # 7, ExtraDW
+  - [-1, 1, OptimizedSEA_Attention, [160]]              # 8, Optimized SEA attention
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 4, 5]]  # 9, ExtraDW
+  - [-1, 1, C2f, [160]]                                 # 10, MQA-like attention
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 4, 3]]  # 11, ExtraDW
+  - [-1, 1, C2f, [160]]                                 # 12, MQA-like attention
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 4, 3]]  # 13, ConvNeXt-like
+  - [-1, 1, OptimizedSEA_Attention, [160]]              # 14, Optimized SEA attention
+  - [-1, 1, C2f, [160]]                                 # 15, MQA-like attention
+
+  # Stage 4 - 40x40 -> 20x20 (重要的特征层，使用Transformer增强SEA注意力)
+  - [-1, 1, UniversalInvertedResidual, [256, 2, 6, 5]]  # 16-P5/32, ExtraDW with k=5
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 4, 3]]  # 17, ExtraDW
+  - [-1, 1, C2f, [256]]                                 # 18, MQA-like attention
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 4, 5]]  # 19, ExtraDW
+  - [-1, 1, TransformerEnhancedSEA, [256]]              # 20, Transformer Enhanced SEA
+  - [-1, 1, C2f, [256]]                                 # 21, MQA-like attention
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 4, 3]]  # 22, ConvNeXt-like
+  - [-1, 1, C2f, [256]]                                 # 23, MQA-like attention
+  - [-1, 1, Conv, [256, 1, 1]]                          # 24, output proj
+
+# RT-DETR head with ASFF (平衡版本：224通道，RepC3×2)
+head:
+  - [-1, 1, Conv, [224, 1, 1]]     # 25 (input_proj.2), C5→224
+  - [-1, 1, AIFI, [224, 8]]        # 26, AIFI with 8 heads
+  - [-1, 1, Conv, [224, 1, 1]]     # 27 (input_proj.2 output)
+
+  - [14, 1, Conv, [224, 1, 1]]     # 28 (input_proj.1), C4→224
+  - [4, 1, Conv, [224, 1, 1]]      # 29 (input_proj.0), C3→224
+
+  # 编码器特征增强 (RepC3×2)
+  - [29, 2, RepC3, [224]]  # 30, C3 enhanced
+  - [28, 2, RepC3, [224]]  # 31, C4 enhanced  
+  - [27, 2, RepC3, [224]]  # 32, C5 enhanced
+
+  # 解码器-P5分支 (顶层特征)
+  - [32, 1, nn.Upsample, [None, 2, 'nearest']]  # 33, P5 upsample
+  - [[33, 31], 1, Concat, [1]]                   # 34, concat P5+C4
+  - [34, 2, RepC3, [224]]                        # 35, fusion
+
+  # 解码器-P4分支 
+  - [35, 1, nn.Upsample, [None, 2, 'nearest']]  # 36, P4 upsample  
+  - [[36, 30], 1, Concat, [1]]                   # 37, concat P4+C3
+  - [37, 2, RepC3, [224]]                        # 38, fusion
+
+  # 解码器-P3分支 (底层特征，最高分辨率)
+  - [38, 1, Conv, [224, 3, 2]]                   # 39, downsample
+  - [[39, 35], 1, Concat, [1]]                   # 40, concat with P4
+  - [40, 2, RepC3, [224]]                        # 41, fusion
+
+  # 解码器-P4到P5
+  - [41, 1, Conv, [224, 3, 2]]                   # 42, downsample
+  - [[42, 32], 1, Concat, [1]]                   # 43, concat with P5
+  - [43, 2, RepC3, [224]]                        # 44, fusion
+
+  # ========== ASFF 三尺度自适应融合 ==========
+  # P3尺度融合 (输入: P3@38, P4@41, P5@44)
+  - [[38, 41, 44], 1, ASFF, [0, 224]]  # 45, ASFF for P3 (level=0, channels=224)
+  
+  # P4尺度融合 (输入: P3@38, P4@41, P5@44)  
+  - [[38, 41, 44], 1, ASFF, [1, 224]]  # 46, ASFF for P4 (level=1, channels=224)
+  
+  # P5尺度融合 (输入: P3@38, P4@41, P5@44)
+  - [[38, 41, 44], 1, ASFF, [2, 224]]  # 47, ASFF for P5 (level=2, channels=224)
+
+  # ========== Transformer解码器层 ==========
+  - [[45, 46, 47], 1, RTDETRDecoder, [nc]]  # 48, Detect(P3_asff, P4_asff, P5_asff)
+
+# ========== 平衡版本参数说明 ==========
+# v2 → v3平衡版改进：
+# 1. 特征通道：256 → 224 (-12.5%)
+# 2. RepC3深度：3 → 2 (-33%计算)  
+# 3. 保留完整三尺度ASFF融合架构
+# 
+# 预期效果：
+# - 参数量：29.78M → ~27-28M
+# - 性能：目标mAP50 > 0.47
+# - 推理速度：更快

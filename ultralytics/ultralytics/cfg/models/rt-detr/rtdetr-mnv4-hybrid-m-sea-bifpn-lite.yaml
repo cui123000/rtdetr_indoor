@@ -1,0 +1,117 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
+
+# Ultralytics RT-DETR with MobileNetV4 Hybrid Medium backbone + SEA Attention + BiFPN-Lite (v2-Fixed)
+# 
+# 实际性能基准（最新统计）：
+# ┌──────────────────────┬──────────┬──────────┬──────────┬──────────┬──────────┬──────────┐
+# │ 模型                 │ 参数(M)  │ 大小(MB) │ mAP50    │ mAP50-95 │ Precision│ Recall   │
+# ├──────────────────────┼──────────┼──────────┼──────────┼──────────┼──────────┼──────────┤
+# │ RT-DETR-L            │ 32.97    │ 125.77   │ 0.3163   │ 0.2180   │ 0.3453   │ 0.3891   │
+# │ RT-DETR-MNV4         │ 24.98    │ 95.29    │ 0.4051   │ 0.2680   │ 0.5236   │ 0.3925   │
+# │ RT-DETR-MNV4-SEA     │ 29.06    │ 110.85   │ 0.4782   │ 0.3129   │ 0.4901   │ 0.4957   │
+# │ RT-DETR-MNV4-SEA-BiFPN│ 29.85   │ 113.86   │ 0.3982   │ 0.2746   │ 0.5354   │ 0.4200   │ ← 当前
+# └──────────────────────┴──────────┴──────────┴──────────┴──────────┴──────────┴──────────┘
+#
+# ✅ v2-Fixed 修复策略（目标：超越SEA版本 0.4782）：
+#   1. AIFI适度提升：768→896（补偿BiFPN引入的复杂度）
+#   2. 简化BiFPN：移除P5融合，仅保留P3增强（专注小目标）
+#   3. PAN深度优化：F4增强到4层，F5保持3层
+#   4. FPN轻量化：减少早期融合深度（2层足够）
+# 
+# 🎯 预期效果：
+#   参数：29.85M → 29.5M (-1.2%)
+#   mAP50：0.3982 → 0.485-0.500 (+21.8-25.6%)
+#   mAP50-95：0.2746 → 0.320-0.335 (+16.5-22%)
+#   目标：超越SEA版本，达到 mAP50 > 0.48
+# Task docs: https://docs.ultralytics.com/tasks/detect
+
+# Parameters
+nc: 80 # number of classes
+scales: # model compound scaling constants
+  # [depth, width, max_channels]
+  m: [1.00, 1.00, 512]
+
+backbone:
+  # MobileNetV4 Hybrid Medium backbone with integrated SEA Attention
+  # Stage 0 - Stem: input 640x640 -> 320x320
+  - [-1, 1, Conv, [32, 3, 2]]  # 0-P1/2, stem conv
+
+  # Stage 1 - 320x320 -> 160x160  
+  - [-1, 1, EdgeResidual, [48, 2, 4]]  # 1-P2/4, FusedIB (EdgeResidual) 
+
+  # Stage 2 - 160x160 -> 80x80
+  - [-1, 1, UniversalInvertedResidual, [80, 2, 4, 5]]  # 2-P3/8, ExtraDW with k=5
+  - [-1, 1, UniversalInvertedResidual, [80, 1, 2, 3]]  # 3, ExtraDW with k=3
+  - [-1, 1, Sea_Attention_Simplified, [80]]  # 4, Optimized SEA attention for early stage
+
+  # Stage 3 - 80x80 -> 40x40 (关键特征层 + SEA注意力)
+  - [-1, 1, UniversalInvertedResidual, [160, 2, 6, 5]]  # 5-P4/16, ExtraDW with k=5
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 2, 3]]  # 6, FFN-like
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 4, 3]]  # 7, ExtraDW
+  - [-1, 1, OptimizedSEA_Attention, [160]]                    # 8, Optimized SEA attention
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 4, 5]]  # 9, ExtraDW
+  - [-1, 1, C2f, [160]]                                 # 10, MQA-like attention
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 4, 3]]  # 11, ExtraDW
+  - [-1, 1, C2f, [160]]                                 # 12, MQA-like attention
+  - [-1, 1, UniversalInvertedResidual, [160, 1, 4, 3]]  # 13, ConvNeXt-like
+  - [-1, 1, OptimizedSEA_Attention, [160]]                    # 14, Optimized SEA attention
+  - [-1, 1, C2f, [160]]                                 # 15, MQA-like attention
+
+  # Stage 4 - 40x40 -> 20x20 (高层特征 + Transformer增强SEA)
+  - [-1, 1, UniversalInvertedResidual, [256, 2, 6, 5]]  # 16-P5/32, ExtraDW with k=5
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 4, 5]]  # 17, ExtraDW
+  - [-1, 1, TransformerEnhancedSEA, [256]]                    # 18, Transformer Enhanced SEA attention for high-level features
+  - [-1, 2, UniversalInvertedResidual, [256, 1, 4, 5]]  # 19, ExtraDW blocks
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 2, 3]]  # 20, FFN-like
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 2, 5]]  # 21, ExtraDW
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 2, 3]]  # 22, FFN-like
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 4, 3]]  # 23, FFN-like
+  - [-1, 1, TransformerEnhancedSEA, [256]]                    # 24, Transformer Enhanced SEA attention
+  - [-1, 1, C2f, [256]]                                 # 25, MQA attention
+  - [-1, 1, UniversalInvertedResidual, [256, 1, 4, 3]]  # 26, ConvNeXt-like
+
+  # Final conv layer
+  - [-1, 1, Conv, [960, 1, 1]]  # 27, final conv (matches MobileNetV4)
+
+head:
+  # v2-Fixed 修复策略（基于实测失败数据 mAP50=0.3982 的反思）
+  # 核心：简化BiFPN，增强关键路径，提升AIFI表达能力
+  
+  # 第一段：高层特征处理 (Y5 路径) - AIFI适度提升
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]] # 28 input_proj.2，保持256通道
+  - [-1, 1, AIFI, [896, 8]]                       # 29 transformer增强，提升到896（3.5×256）
+  - [-1, 1, Conv, [256, 1, 1]]                    # 30 Y5, lateral_convs.0
+
+  # 第二段：FPN 上采样融合（从 P5 到 P4）- 轻量化
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [15, 1, Conv, [256, 1, 1, None, 1, 1, False]] # 32 input_proj.1 (from stage 3)
+  - [[-2, -1], 1, Concat, [1]]
+  - [-1, 2, RepC3, [256]]                         # 34 fpn_blocks.0，Y4融合层（轻量化）
+  - [-1, 1, Conv, [256, 1, 1]]                    # 35 Y4, lateral_convs.1
+
+  # 第三段：FPN 继续上采样融合（从 P4 到 P3）- 轻量化
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [4, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 37 input_proj.0 (from stage 2)
+  - [[-2, -1], 1, Concat, [1]]
+  - [-1, 2, RepC3, [256]]                         # 39 fpn_blocks.1，X3融合层（轻量化）
+
+  # 第四段：PAN 下采样融合（从 P3 到 P4）- 重点增强
+  - [-1, 1, Conv, [256, 3, 2]]                    # 40 downsample_convs.0
+  - [[-1, 35], 1, Concat, [1]]
+  - [-1, 4, RepC3, [256]]                         # 42 pan_blocks.0，F4融合层（增强到4层）
+
+  # 第五段：PAN 继续下采样融合（从 P4 到 P5）- 标准配置
+  - [-1, 1, Conv, [256, 3, 2]]                    # 43 downsample_convs.1
+  - [[-1, 30], 1, Concat, [1]]
+  - [-1, 3, RepC3, [256]]                         # 45 pan_blocks.1，F5融合层（保持3层）
+
+  # 第六段：BiFPN 简化版（仅P3增强，移除失效的P5路径）
+  # 策略：专注小目标路径优化，移除导致性能下降的P5融合
+  
+  # 添加 P3 ← P4 融合：从 F4 回传到 X3（小目标关键）
+  - [42, 1, nn.Upsample, [None, 2, "nearest"]]   # 46 从 F4(P4) 上采样
+  - [[46, 39], 1, Concat, [1]]
+  - [-1, 1, RepC3, [256]]                         # 48 BiFPN 增强 P3（256通道）
+
+  # 直接使用增强后的特征进行检测（移除P5额外融合）
+  - [[48, 42, 45], 1, RTDETRDecoder, [nc]]        # Detect(P3_enhanced, P4, P5)

@@ -13,6 +13,7 @@ from pathlib import Path
 import threading
 import time
 import resource
+import multiprocessing
 
 # 添加项目路径
 project_root = Path(__file__).parent.parent.parent
@@ -108,57 +109,57 @@ def memory_monitor_rtx4090():
 
 def get_rtx4090_config(model_choice):
     """RTX 4090优化的训练配置"""
-    
+
     model_configs = {
         '1': {
             'file': 'rtdetr-l.yaml',
             'name': 'rtdetr_l_rtx4090',
-            'batch': 6,       # 进一步降低batch避免内存泄漏
-            'lr0': 0.0012,    # 相应调整学习率
-            'workers': 2,     # 最小workers防止内存泄漏
+            'batch': 12,       # 增加批次大小以提高效率
+            'lr0': 0.002,      # 稳定的学习率
+            'workers': 4,      # 合理的workers数量
         },
         '2': {
             'file': 'rtdetr-mnv4-hybrid-m.yaml', 
             'name': 'rtdetr_mnv4_hybrid_rtx4090',
-            'batch': 4,       # MNV4混合版本
-            'lr0': 0.001,
-            'workers': 2,     # 最小workers防止内存泄漏
+            'batch': 8,        # MNV4混合版本
+            'lr0': 0.0015,
+            'workers': 4,      # 合理的workers数量
         },
         '3': {
             'file': 'rtdetr-mnv4-hybrid-m-sea.yaml',
             'name': 'rtdetr_mnv4_sea_rtx4090',
-            'batch': 3,       # SEA版本最保守的batch
-            'lr0': 0.0008,
-            'workers': 2,     # 禁用多进程数据加载
+            'batch': 6,        # SEA版本最保守的batch
+            'lr0': 0.0012,
+            'workers': 4,      # 合理的workers数量
         }   
     }
-    
+
     if model_choice not in model_configs:
         raise ValueError(f"无效的模型选择: {model_choice}")
-    
+
     model_config = model_configs[model_choice]
-    
+
     # RTX 4090专用配置
     config = {
         'task': 'detect',
         'mode': 'train',
         'model': f'/home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/{model_config["file"]}',
         'data': '/home/cui/rtdetr_indoor/datasets/homeobjects-3K/HomeObjects-3K.yaml',
-        
+
         # RTX 4090优化的核心参数
         'epochs': 100,
         'batch': model_config['batch'],
         'imgsz': 640,
         'patience': 20,
-        
+
         # 稳定性优化设置 - 防止内存泄漏
         'device': '0',
         'workers': model_config['workers'],
-        'amp': True,            # 混合精度训练
-        'cache': False,         # 关闭缓存避免文件描述符问题
+        'amp': True,            # 启用混合精度训练
+        'cache': 'ram',         # 缓存到内存以加速数据加载
         'rect': True,           # 矩形训练
         'single_cls': False,
-        
+
         # RTX 4090优化的学习率设置
         'optimizer': 'AdamW',
         'lr0': model_config['lr0'],
@@ -169,7 +170,7 @@ def get_rtx4090_config(model_choice):
         'warmup_momentum': 0.8,
         'warmup_bias_lr': 0.1,
         'cos_lr': True,
-        
+
         # 内存安全的数据增强设置
         'hsv_h': 0.015,
         'hsv_s': 0.7,
@@ -184,25 +185,25 @@ def get_rtx4090_config(model_choice):
         'mosaic': 0.0,          # 关闭mosaic防止内存泄漏
         'mixup': 0.0,           # 关闭mixup防止内存泄漏
         'copy_paste': 0.0,      # 关闭copy_paste防止内存泄漏
-        
+
         # 损失权重
         'box': 7.5,
         'cls': 0.5,
         'dfl': 1.5,
-        
+
         # 验证设置
         'val': True,
         'conf': 0.25,
         'iou': 0.7,
         'max_det': 300,
-        
+
         # 保存设置
         'save': True,
         'save_period': 5,
         'project': 'runs/detect',
         'name': model_config['name'],
         'exist_ok': True,
-        
+
         # RTX 4090专用设置
         'verbose': True,
         'seed': 42,
@@ -211,13 +212,13 @@ def get_rtx4090_config(model_choice):
         'close_mosaic': 10,
         'overlap_mask': True,   # RTX 4090可以处理重叠mask
         'mask_ratio': 4,
-        
+
         # 高级优化设置
         'profile': False,       # 关闭性能分析以提高速度
         'half': False,          # RTX 4090用FP16可能不稳定，用AMP就够了
         'dnn': False,           # 不使用OpenCV DNN
     }
-    
+
     return config
 
 def train_with_rtx4090_optimization(model_choice):
@@ -259,7 +260,13 @@ def train_with_rtx4090_optimization(model_choice):
         results = model.train(**{k: v for k, v in config.items() if k not in ['model']})
         
         print("\n🎉 训练完成!")
-        print(f"📊 最佳mAP50: {results.best_fitness}")
+        # 使用正确的属性获取训练结果
+        if hasattr(results, 'fitness'):
+            fitness_score = results.fitness()
+            print(f"📊 最终fitness评分: {fitness_score}")
+        elif hasattr(results, 'mean_results'):
+            mean_results = results.mean_results()
+            print(f"📊 平均结果: P={mean_results[0]:.3f}, R={mean_results[1]:.3f}, mAP50={mean_results[2]:.3f}, mAP50-95={mean_results[3]:.3f}")
         
         # 最终清理
         del model
@@ -343,7 +350,7 @@ def main():
     """主函数"""
     print("🏎️  RTX 4090专用RT-DETR训练优化器")
     print("=" * 50)
-    
+
     while True:
         print("\n📋 选项:")
         print("1. RTX 4090速度测试")
@@ -352,29 +359,29 @@ def main():
         print("4. 开始优化训练 - RT-DETR+MNV4+SEA")
         print("5. 内存状态检查")
         print("6. 退出")
-        
+
         try:
             choice = input("\n请选择 (1-6): ").strip()
-            
+
             if choice == '1':
                 quick_speed_test()
-                
+
             elif choice in ['2', '3', '4']:
                 model_map = {'2': '1', '3': '2', '4': '3'}
                 model_choice = model_map[choice]
-                
+
                 confirm = input(f"确认开始训练? (y/n): ").strip().lower()
                 if confirm == 'y':
                     train_with_rtx4090_optimization(model_choice)
                 else:
                     print("❌ 取消训练")
-                    
+
             elif choice == '5':
                 if torch.cuda.is_available():
                     allocated = torch.cuda.memory_allocated() / 1e9
                     cached = torch.cuda.memory_reserved() / 1e9
                     total = torch.cuda.get_device_properties(0).total_memory / 1e9
-                    
+
                     print(f"🔥 GPU: {torch.cuda.get_device_name(0)}")
                     print(f"   总显存: {total:.1f}GB")
                     print(f"   已使用: {allocated:.1f}GB ({allocated/total*100:.1f}%)")
@@ -382,14 +389,14 @@ def main():
                     print(f"   可用: {total-allocated:.1f}GB")
                 else:
                     print("❌ CUDA不可用")
-                    
+
             elif choice == '6':
                 print("👋 退出")
                 break
-                
+
             else:
                 print("❌ 请输入 1-6")
-                
+
         except KeyboardInterrupt:
             print("\n👋 退出")
             break

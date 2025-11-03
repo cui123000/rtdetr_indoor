@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-10-17T20:34:04.865062",
+  "variant": "RT-DETR-MNV4-SEA",
+  "metrics": {
+    "metrics/precision(B)": 0.49006835229187845,
+    "metrics/recall(B)": 0.49569014276618534,
+    "metrics/mAP50(B)": 0.47824026748091447,
+    "metrics/mAP50-95(B)": 0.31285754121762704,
+    "fitness": 0.3293958138439558,
+    "preprocess": 0.17379301504778336,
+    "inference": 10.280155757367773,
+    "loss": 0.004078787368247377,
+    "postprocess": 1.1228277600983545
+  }
+}

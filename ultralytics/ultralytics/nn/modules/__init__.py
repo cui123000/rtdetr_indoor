@@ -56,6 +56,7 @@ from .block import (
     RepC3,
     RepNCSPELAN4,
     RepVGGDW,
+    BiFPNLite,
     ResNetLayer,
     SCDown,
     TorchVision,
@@ -83,6 +84,7 @@ from .head import (
     LRPCHead,
     Pose,
     RTDETRDecoder,
+    RTDETRBiFPNDecoder,
     Segment,
     WorldDetect,
     YOLOEDetect,
@@ -114,6 +116,11 @@ from .sea_attention import (
     EfficientSEA_Attention_Light,
     TransformerEnhancedSEA,
     create_sea_attention,
+)
+from .fusion import (
+    ASFF,
+    ASFF_Simple,
+    DySample,
 )
 
 __all__ = (
@@ -179,4 +186,9 @@ __all__ = (
     "EfficientSEA_Attention_Light",
     "TransformerEnhancedSEA",
     "create_sea_attention",
+    "BiFPNLite",
+    "RTDETRBiFPNDecoder",
+    "ASFF",
+    "ASFF_Simple",
+    "DySample",
 )

@@ -15,12 +15,23 @@ from ultralytics.utils import NOT_MACOS14
 from ultralytics.utils.tal import TORCH_1_10, dist2bbox, dist2rbox, make_anchors
 from ultralytics.utils.torch_utils import fuse_conv_and_bn, smart_inference_mode
 
-from .block import DFL, SAVPE, BNContrastiveHead, ContrastiveHead, Proto, Residual, SwiGLUFFN
+from .block import DFL, SAVPE, BNContrastiveHead, BiFPNLite, ContrastiveHead, Proto, Residual, SwiGLUFFN
 from .conv import Conv, DWConv
 from .transformer import MLP, DeformableTransformerDecoder, DeformableTransformerDecoderLayer
 from .utils import bias_init_with_prob, linear_init
 
-__all__ = "Detect", "Segment", "Pose", "Classify", "OBB", "RTDETRDecoder", "v10Detect", "YOLOEDetect", "YOLOESegment"
+__all__ = (
+    "Detect",
+    "Segment",
+    "Pose",
+    "Classify",
+    "OBB",
+    "RTDETRDecoder",
+    "RTDETRBiFPNDecoder",
+    "v10Detect",
+    "YOLOEDetect",
+    "YOLOESegment",
+)
 
 
 class Detect(nn.Module):
@@ -1178,6 +1189,60 @@ class RTDETRDecoder(nn.Module):
         xavier_uniform_(self.query_pos_head.layers[1].weight)
         for layer in self.input_proj:
             xavier_uniform_(layer[0].weight)
+
+
+class RTDETRBiFPNDecoder(RTDETRDecoder):
+    """RT-DETR decoder enhanced with a lightweight BiFPN fusion stage."""
+
+    def __init__(
+        self,
+        nc: int = 80,
+        ch: list[int] | tuple[int, ...] = (512, 1024, 2048),
+        hd: int = 256,
+        nq: int = 300,
+        ndp: int = 4,
+        nh: int = 8,
+        ndl: int = 6,
+        d_ffn: int = 1024,
+        dropout: float = 0.0,
+        act: nn.Module = nn.ReLU(),
+        eval_idx: int = -1,
+        nd: int = 100,
+        label_noise_ratio: float = 0.5,
+        box_noise_scale: float = 1.0,
+        learnt_init_query: bool = False,
+        bifpn_layers: int = 1,
+        bifpn_channels: int | None = None,
+        bifpn_epsilon: float = 1e-4,
+    ) -> None:
+        """Initialize the decoder while inserting a BiFPN-Lite feature fusion stage."""
+
+        ch = list(ch)
+        fused_channels = bifpn_channels or ch[0]
+        super().__init__(
+            nc=nc,
+            ch=tuple(fused_channels for _ in ch),
+            hd=hd,
+            nq=nq,
+            ndp=ndp,
+            nh=nh,
+            ndl=ndl,
+            d_ffn=d_ffn,
+            dropout=dropout,
+            act=act,
+            eval_idx=eval_idx,
+            nd=nd,
+            label_noise_ratio=label_noise_ratio,
+            box_noise_scale=box_noise_scale,
+            learnt_init_query=learnt_init_query,
+        )
+        self.bifpn = BiFPNLite(ch, out_channels=fused_channels, num_layers=bifpn_layers, epsilon=bifpn_epsilon)
+
+    def forward(self, x: list[torch.Tensor] | tuple[torch.Tensor, ...], batch: dict | None = None) -> tuple | torch.Tensor:
+        """Apply BiFPN-Lite fusion prior to the standard RT-DETR decoding process."""
+
+        fused_feats = self.bifpn(list(x))
+        return super().forward(fused_feats, batch=batch)
 
 
 class v10Detect(Detect):

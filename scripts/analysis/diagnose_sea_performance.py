@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """
-SEA注意力版本性能下降诊断分析
-深度分析SEA集成后性能下降的原因
+RT-DETR 四个版本融合有效性分析
+对比四个模型的参数量、精确率、召回率、mAP等关键指标，评估融合策略的有效性。
 """
 
 import csv
+import json
+import sys
 from pathlib import Path
+from typing import Dict, List, Tuple
 import matplotlib.pyplot as plt
+
+import torch
 
 def analyze_sea_performance_degradation():
     """分析SEA版本性能下降原因"""

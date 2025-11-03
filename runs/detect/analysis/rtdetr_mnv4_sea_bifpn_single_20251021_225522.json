@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-10-21T22:55:22.832389",
+  "variant": "RT-DETR-MNV4-SEA-BiFPN",
+  "metrics": {
+    "metrics/precision(B)": 0.5353843632620156,
+    "metrics/recall(B)": 0.420023135002489,
+    "metrics/mAP50(B)": 0.39824011621328453,
+    "metrics/mAP50-95(B)": 0.27455307169543186,
+    "fitness": 0.28692177614721714,
+    "preprocess": 0.1720169168380596,
+    "inference": 10.321288027553956,
+    "loss": 0.0015297203813448993,
+    "postprocess": 0.7659582306497205
+  }
+}
