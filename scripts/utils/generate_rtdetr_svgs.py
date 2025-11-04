@@ -235,6 +235,94 @@ def make_head_summary(model_name: str) -> List[str]:
 	return lines
 
 
+def draw_compare_svg(
+	out_path: Path,
+	titles: List[str],
+	models_stages: List[List[Dict[str, Any]]],
+	canvas_size: Tuple[int, int] = (1500, 900),
+) -> None:
+	"""Draw a side-by-side comparison focusing on backbone replacement and SEA insertion."""
+	if svgwrite is None:
+		raise RuntimeError("Missing dependency: svgwrite. Please install 'svgwrite'.")
+
+	assert len(titles) == len(models_stages) == 3, "Expect exactly three models for comparison"
+
+	dwg = svgwrite.Drawing(str(out_path), size=(canvas_size[0], canvas_size[1]))
+
+	BG = "#ffffff"
+	COLOR_STAGE = "#F4F5F7"
+	COLOR_STAGE_SEA = "#E6F0FF"
+	COLOR_TEXT = "#091E42"
+	COLOR_TITLE = "#172B4D"
+	COLOR_NOTE = "#6554C0"
+	COLOR_SEP = "#C1C7D0"
+	COLOR_ACCENT = "#4C9AFF"
+
+	dwg.add(dwg.rect(insert=(0, 0), size=canvas_size, fill=BG))
+	dwg.add(
+		dwg.text(
+			"RT-DETR 主干对比：L vs MNV4 vs MNV4+SEA（蓝色=含SEA）",
+			insert=(20, 40),
+			fill=COLOR_TITLE,
+			font_size=24,
+			font_weight="bold",
+		)
+	)
+
+	# Column layout
+	cols = 3
+	margin_x = 24
+	margin_top = 70
+	col_w = (canvas_size[0] - margin_x * 2) / cols
+	box_width = col_w - 20
+	box_height_unit = 18
+
+	# For each column
+	for ci in range(cols):
+		x = margin_x + ci * col_w + 10
+		y = margin_top + 10
+		# Title per column
+		dwg.add(dwg.text(titles[ci], insert=(x, y), fill=COLOR_TITLE, font_size=18, font_weight="bold"))
+		y += 24
+		stages = models_stages[ci]
+		for st in stages:
+			modules = st.get("modules", [])
+			mod_lines = min(7, len(modules))
+			box_h = 70 + mod_lines * box_height_unit
+			stage_color = COLOR_STAGE_SEA if st.get("sea") else COLOR_STAGE
+			dwg.add(
+				dwg.rect(
+					insert=(x, y),
+					size=(box_width, box_h),
+					rx=8,
+					ry=8,
+					fill=stage_color,
+					stroke=COLOR_SEP,
+				)
+			)
+			header = f"{st['name']}  {st['hw']}  C={st['c']}"
+			dwg.add(dwg.text(header, insert=(x + 10, y + 22), fill=COLOR_TEXT, font_size=13, font_weight="bold"))
+			ty = y + 44
+			for m in modules[:mod_lines]:
+				fill = COLOR_ACCENT if "[SEA]" in m else COLOR_TEXT
+				dwg.add(dwg.text(f"• {m}", insert=(x + 10, ty), fill=fill, font_size=12))
+				ty += box_height_unit
+			if len(modules) > mod_lines:
+				dwg.add(dwg.text(f"… (+{len(modules)-mod_lines})", insert=(x + 10, ty), fill=COLOR_TEXT, font_size=12, opacity=0.7))
+			y += box_h + 12
+
+		# Column separator
+		if ci < cols - 1:
+			x_sep = margin_x + (ci + 1) * col_w
+			dwg.add(dwg.line(start=(x_sep, margin_top), end=(x_sep, canvas_size[1] - 40), stroke=COLOR_SEP, stroke_width=1))
+
+	# Shared head note (unchanged across columns)
+	note = "Head 保持一致：AIFI + FPN/PAN + RTDETRDecoder（对比重点在主干替换与注意力插入）"
+	dwg.add(dwg.text(note, insert=(20, canvas_size[1] - 24), fill=COLOR_NOTE, font_size=14))
+
+	dwg.save()
+
+
 def build_and_draw(model_yaml: Path, title: str, out_dir: Path) -> Path:
 	data = load_yaml(model_yaml)
 	backbone = data.get("backbone", [])
@@ -261,9 +349,120 @@ def main():
 		raise FileNotFoundError(f"Missing YAML files: {missing}")
 
 	outputs: List[Path] = []
-	outputs.append(build_and_draw(yaml_l, "RT-DETR-L", out_dir))
-	outputs.append(build_and_draw(yaml_mnv4, "RT-DETR-MNV4-Hybrid-M", out_dir))
-	outputs.append(build_and_draw(yaml_mnv4_sea, "RT-DETR-MNV4-Hybrid-M-SEA", out_dir))
+	# Individual diagrams (SVG) — 如果缺少 svgwrite，跳过 SVG 生成
+	try:
+		p_l = build_and_draw(yaml_l, "RT-DETR-L", out_dir)
+		p_m = build_and_draw(yaml_mnv4, "RT-DETR-MNV4-Hybrid-M", out_dir)
+		p_ms = build_and_draw(yaml_mnv4_sea, "RT-DETR-MNV4-Hybrid-M-SEA", out_dir)
+		outputs.extend([p_l, p_m, p_ms])
+	except RuntimeError as e:
+		if "svgwrite" in str(e):
+			print("[Info] svgwrite 未安装，跳过 SVG 生成，仅生成 ASCII/DOT。")
+		else:
+			raise
+
+	# Comparison diagram (backbone only focus)
+	data_l = load_yaml(yaml_l)
+	data_m = load_yaml(yaml_mnv4)
+	data_ms = load_yaml(yaml_mnv4_sea)
+	stages_l = summarize_backbone(data_l.get("backbone", []))
+	stages_m = summarize_backbone(data_m.get("backbone", []))
+	stages_ms = summarize_backbone(data_ms.get("backbone", []))
+	# 对比 SVG（若 svgwrite 缺失则跳过）
+	try:
+		compare_out = out_dir / "rtdetr_compare.svg"
+		draw_compare_svg(compare_out, ["RT-DETR-L", "MNV4-Hybrid-M", "MNV4-Hybrid-M-SEA"], [stages_l, stages_m, stages_ms])
+		outputs.append(compare_out)
+	except RuntimeError as e:
+		if "svgwrite" in str(e):
+			print("[Info] svgwrite 未安装，跳过对比 SVG 生成。")
+		else:
+			raise
+
+	# -----------------------------
+	# ASCII generation
+	# -----------------------------
+	def ascii_block(title: str, stages: List[Dict[str, Any]]) -> str:
+		lines: List[str] = []
+		lines.append(f"# {title}")
+		lines.append("")
+		lines.append("Input: 640x640x3")
+		for i, st in enumerate(stages):
+			sea_mark = " [SEA]" if st.get("sea") else ""
+			lines.append(f"└─ {st['name']}  {st['hw']}  C={st['c']}{sea_mark}")
+			mods = st.get("modules", [])
+			for m in mods:
+				prefix = "   ├─" if m != mods[-1] else "   └─"
+				lines.append(f"{prefix} {m}")
+		# Generic head note
+		lines.append("")
+		lines.append("Head: AIFI + FPN/PAN + RTDETRDecoder (P3/8, P4/16, P5/32)")
+		return "\n".join(lines)
+
+	ascii_dir = out_dir
+	(ascii_dir / "ascii").mkdir(parents=True, exist_ok=True)
+	ascii_l = ascii_dir / "ascii" / "rtdetr_l_ascii.md"
+	ascii_m = ascii_dir / "ascii" / "rtdetr_mnv4_hybrid_m_ascii.md"
+	ascii_ms = ascii_dir / "ascii" / "rtdetr_mnv4_hybrid_m_sea_ascii.md"
+	ascii_cmp = ascii_dir / "ascii" / "rtdetr_compare_ascii.md"
+
+	with open(ascii_l, "w", encoding="utf-8") as f:
+		f.write("```\n" + ascii_block("RT-DETR-L", stages_l) + "\n```\n")
+	with open(ascii_m, "w", encoding="utf-8") as f:
+		f.write("```\n" + ascii_block("RT-DETR-MNV4-Hybrid-M", stages_m) + "\n```\n")
+	with open(ascii_ms, "w", encoding="utf-8") as f:
+		f.write("```\n" + ascii_block("RT-DETR-MNV4-Hybrid-M-SEA", stages_ms) + "\n```\n")
+	with open(ascii_cmp, "w", encoding="utf-8") as f:
+		f.write("# RT-DETR 主干对比 (L / MNV4 / MNV4+SEA)\n\n")
+		f.write("## L\n\n```\n" + ascii_block("RT-DETR-L", stages_l) + "\n```\n\n")
+		f.write("## MNV4\n\n```\n" + ascii_block("RT-DETR-MNV4-Hybrid-M", stages_m) + "\n```\n\n")
+		f.write("## MNV4+SEA\n\n```\n" + ascii_block("RT-DETR-MNV4-Hybrid-M-SEA", stages_ms) + "\n```\n")
+
+	outputs.extend([ascii_l, ascii_m, ascii_ms, ascii_cmp])
+
+	# -----------------------------
+	# Graphviz DOT generation
+	# -----------------------------
+	def dot_for_model(title: str, stages: List[Dict[str, Any]]) -> str:
+		def esc(s: str) -> str:
+			return s.replace("\"", "\\\"")
+		lines: List[str] = []
+		lines.append("digraph G {")
+		lines.append("  rankdir=LR;")
+		lines.append("  node [shape=box, style=filled, fontname=Helvetica];")
+		# clusters per stage
+		for i, st in enumerate(stages):
+			color = "#E6F0FF" if st.get("sea") else "#F4F5F7"
+			lines.append(f"  subgraph cluster_{i} {{")
+			lines.append(f"    label=\"{esc(st['name'])} {esc(st['hw'])} C={st['c']}\";")
+			lines.append(f"    color=\"#C1C7D0\";")
+			lines.append(f"    style=filled; fillcolor=\"{color}\";")
+			# one node per stage with module list
+			mods = st.get("modules", [])
+			mod_text = "\\n".join([m for m in mods[:10]])
+			if len(mods) > 10:
+				mod_text += f"\\n… (+{len(mods)-10})"
+			lines.append(f"    s{i} [label=\"{esc(mod_text)}\"];\n  }}")
+		# stage edges
+		for i in range(len(stages) - 1):
+			lines.append(f"  s{i} -> s{i+1};")
+		# title node
+		lines.append(f"  labelloc=\"t\"; label=\"{esc(title)} (Backbone)\";")
+		lines.append("}")
+		return "\n".join(lines)
+
+	dot_dir = out_dir / "dot"
+	dot_dir.mkdir(parents=True, exist_ok=True)
+	dot_l = dot_dir / "rtdetr_l.dot"
+	dot_m = dot_dir / "rtdetr_mnv4_hybrid_m.dot"
+	dot_ms = dot_dir / "rtdetr_mnv4_hybrid_m_sea.dot"
+	with open(dot_l, "w", encoding="utf-8") as f:
+		f.write(dot_for_model("RT-DETR-L", stages_l))
+	with open(dot_m, "w", encoding="utf-8") as f:
+		f.write(dot_for_model("RT-DETR-MNV4-Hybrid-M", stages_m))
+	with open(dot_ms, "w", encoding="utf-8") as f:
+		f.write(dot_for_model("RT-DETR-MNV4-Hybrid-M-SEA", stages_ms))
+	outputs.extend([dot_l, dot_m, dot_ms])
 
 	# Optional: combined note file listing paths
 	note = out_dir / "_index.txt"

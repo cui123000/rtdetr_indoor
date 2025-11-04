@@ -1,0 +1,284 @@
+digraph G {
+  rankdir=LR;
+  node [shape=box, style=filled, fontname=Helvetica];
+  subgraph cluster_0 {
+    label="P1/2 13x13 C=32";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s0 [label="HGStem"];
+  }
+  subgraph cluster_1 {
+    label="P2/4 0x0 C=48";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s1 [label="HGBlock"];
+  }
+  subgraph cluster_2 {
+    label="P3/8 0x0 C=48";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s2 [label="HGBlock"];
+  }
+  subgraph cluster_3 {
+    label="P4/16 0x0 C=48";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s3 [label="HGBlock"];
+  }
+  subgraph cluster_4 {
+    label="P5/32 0x0 C=48";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s4 [label="HGBlock"];
+  }
+  subgraph cluster_5 {
+    label="P?/64 0x0 C=48";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s5 [label="HGBlock"];
+  }
+  subgraph cluster_6 {
+    label="P?/128 0x0 C=48";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s6 [label="HGBlock"];
+  }
+  subgraph cluster_7 {
+    label="P?/256 0x0 C=128";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s7 [label="DWConv"];
+  }
+  subgraph cluster_8 {
+    label="P?/512 0x0 C=96";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s8 [label="HGBlock"];
+  }
+  subgraph cluster_9 {
+    label="P?/1024 0x0 C=96";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s9 [label="HGBlock"];
+  }
+  subgraph cluster_10 {
+    label="P?/2048 0x0 C=96";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s10 [label="HGBlock"];
+  }
+  subgraph cluster_11 {
+    label="P?/4096 0x0 C=96";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s11 [label="HGBlock"];
+  }
+  subgraph cluster_12 {
+    label="P?/8192 0x0 C=96";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s12 [label="HGBlock"];
+  }
+  subgraph cluster_13 {
+    label="P?/16384 0x0 C=96";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s13 [label="HGBlock"];
+  }
+  subgraph cluster_14 {
+    label="P?/32768 0x0 C=512";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s14 [label="DWConv"];
+  }
+  subgraph cluster_15 {
+    label="P?/65536 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s15 [label="HGBlock"];
+  }
+  subgraph cluster_16 {
+    label="P?/131072 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s16 [label="HGBlock"];
+  }
+  subgraph cluster_17 {
+    label="P?/262144 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s17 [label="HGBlock"];
+  }
+  subgraph cluster_18 {
+    label="P?/524288 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s18 [label="HGBlock"];
+  }
+  subgraph cluster_19 {
+    label="P?/1048576 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s19 [label="HGBlock"];
+  }
+  subgraph cluster_20 {
+    label="P?/2097152 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s20 [label="HGBlock"];
+  }
+  subgraph cluster_21 {
+    label="P?/4194304 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s21 [label="HGBlock"];
+  }
+  subgraph cluster_22 {
+    label="P?/8388608 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s22 [label="HGBlock"];
+  }
+  subgraph cluster_23 {
+    label="P?/16777216 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s23 [label="HGBlock"];
+  }
+  subgraph cluster_24 {
+    label="P?/33554432 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s24 [label="HGBlock"];
+  }
+  subgraph cluster_25 {
+    label="P?/67108864 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s25 [label="HGBlock"];
+  }
+  subgraph cluster_26 {
+    label="P?/134217728 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s26 [label="HGBlock"];
+  }
+  subgraph cluster_27 {
+    label="P?/268435456 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s27 [label="HGBlock"];
+  }
+  subgraph cluster_28 {
+    label="P?/536870912 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s28 [label="HGBlock"];
+  }
+  subgraph cluster_29 {
+    label="P?/1073741824 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s29 [label="HGBlock"];
+  }
+  subgraph cluster_30 {
+    label="P?/2147483648 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s30 [label="HGBlock"];
+  }
+  subgraph cluster_31 {
+    label="P?/4294967296 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s31 [label="HGBlock"];
+  }
+  subgraph cluster_32 {
+    label="P?/8589934592 0x0 C=192";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s32 [label="HGBlock"];
+  }
+  subgraph cluster_33 {
+    label="P?/17179869184 0x0 C=1024";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s33 [label="DWConv"];
+  }
+  subgraph cluster_34 {
+    label="P?/34359738368 0x0 C=384";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s34 [label="HGBlock"];
+  }
+  subgraph cluster_35 {
+    label="P?/68719476736 0x0 C=384";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s35 [label="HGBlock"];
+  }
+  subgraph cluster_36 {
+    label="P?/137438953472 0x0 C=384";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s36 [label="HGBlock"];
+  }
+  subgraph cluster_37 {
+    label="P?/274877906944 0x0 C=384";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s37 [label="HGBlock"];
+  }
+  subgraph cluster_38 {
+    label="P?/549755813888 0x0 C=384";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s38 [label="HGBlock"];
+  }
+  subgraph cluster_39 {
+    label="P?/1099511627776 0x0 C=384";
+    color="#C1C7D0";
+    style=filled; fillcolor="#F4F5F7";
+    s39 [label="HGBlock"];
+  }
+  s0 -> s1;
+  s1 -> s2;
+  s2 -> s3;
+  s3 -> s4;
+  s4 -> s5;
+  s5 -> s6;
+  s6 -> s7;
+  s7 -> s8;
+  s8 -> s9;
+  s9 -> s10;
+  s10 -> s11;
+  s11 -> s12;
+  s12 -> s13;
+  s13 -> s14;
+  s14 -> s15;
+  s15 -> s16;
+  s16 -> s17;
+  s17 -> s18;
+  s18 -> s19;
+  s19 -> s20;
+  s20 -> s21;
+  s21 -> s22;
+  s22 -> s23;
+  s23 -> s24;
+  s24 -> s25;
+  s25 -> s26;
+  s26 -> s27;
+  s27 -> s28;
+  s28 -> s29;
+  s29 -> s30;
+  s30 -> s31;
+  s31 -> s32;
+  s32 -> s33;
+  s33 -> s34;
+  s34 -> s35;
+  s35 -> s36;
+  s36 -> s37;
+  s37 -> s38;
+  s38 -> s39;
+  labelloc="t"; label="RT-DETR-L (Backbone)";
+}

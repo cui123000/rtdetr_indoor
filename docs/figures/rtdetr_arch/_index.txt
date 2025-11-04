@@ -1,0 +1,12 @@
+Generated SVGs:
+/home/xuan/rtdetr_indoor/docs/figures/rtdetr_arch/rt-detr-l.svg
+/home/xuan/rtdetr_indoor/docs/figures/rtdetr_arch/rt-detr-mnv4-hybrid-m.svg
+/home/xuan/rtdetr_indoor/docs/figures/rtdetr_arch/rt-detr-mnv4-hybrid-m-sea.svg
+/home/xuan/rtdetr_indoor/docs/figures/rtdetr_arch/rtdetr_compare.svg
+/home/xuan/rtdetr_indoor/docs/figures/rtdetr_arch/ascii/rtdetr_l_ascii.md
+/home/xuan/rtdetr_indoor/docs/figures/rtdetr_arch/ascii/rtdetr_mnv4_hybrid_m_ascii.md
+/home/xuan/rtdetr_indoor/docs/figures/rtdetr_arch/ascii/rtdetr_mnv4_hybrid_m_sea_ascii.md
+/home/xuan/rtdetr_indoor/docs/figures/rtdetr_arch/ascii/rtdetr_compare_ascii.md
+/home/xuan/rtdetr_indoor/docs/figures/rtdetr_arch/dot/rtdetr_l.dot
+/home/xuan/rtdetr_indoor/docs/figures/rtdetr_arch/dot/rtdetr_mnv4_hybrid_m.dot
+/home/xuan/rtdetr_indoor/docs/figures/rtdetr_arch/dot/rtdetr_mnv4_hybrid_m_sea.dot
