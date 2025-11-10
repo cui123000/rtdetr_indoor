@@ -1,0 +1,75 @@
+% 简体中文短文模板（建议使用 XeLaTeX 编译）
+% 若目标会议提供官方 LaTeX 模板，请以官方模板为准再替换正文内容
+\documentclass[conference]{IEEEtran}
+\usepackage{xeCJK}
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+\usepackage{siunitx}
+
+\setCJKmainfont{Noto Sans CJK SC} % 可替换为系统可用中文字体
+\sisetup{detect-all}
+
+\begin{document}
+\title{面向室内目标检测的高效 MobileNetV4+SEA 注意力增强方法}
+
+\author{\IEEEauthorblockN{作者甲, 作者乙}
+\IEEEauthorblockA{单位名称 \\
+Email: \{first,last\}@example.com}
+}
+
+\maketitle
+
+\begin{abstract}
+我们在 RT-DETR 框架中提出一种轻量注意力插入方案，将 SEA 模块嵌入 MobileNetV4 主干以提升室内场景目标检测的精度–效率折中。在 HomeObjects-3K 数据集上，所提模型（MNV4-SEA）相较于 MNV4 基线的 mAP50 提升约 \textbf{+14.4\%}（以最终复现实验为准），参数量约 \SI{29.06}{M}；在 COCO-Indoor 子集上的验证显示良好跨数据集泛化。我们提供完整的可复现资产（代码、配置与子集生成脚本），并讨论了未来融合 CLIP 的指令驱动目标检测方向。
+\end{abstract}
+
+\section{引言}
+% 背景与挑战、移动端约束、现有方法不足
+\textbf{本文贡献：}
+(i) 提出适用于移动友好主干的 SEA 注意力插入范式；
+(ii) 系统消融以区分结构增益与训练策略增益；
+(iii) 完整效率评测与 COCO-Indoor 跨数据集验证；
+(iv) 提供可复现代码与脚本。
+
+\section{相关工作}
+% 高效主干、轻量注意力、实时检测、开放词汇（简述）
+
+\section{方法}
+% RT-DETR 与 MobileNetV4 概述
+% SEA 模块结构、插入位置（stage/block）、超参、复杂度分析
+% 图1：结构示意
+% 说明为何选择注意力而非融合颈
+
+\section{实验}
+\subsection{数据集与指标}
+% HomeObjects-3K，COCO-Indoor（Places365筛选脚本）；COCO指标（mAP50/95，APs/m/l 等）
+
+\subsection{实现细节}
+% 硬件、软件版本、imgsz/batch、LR/调度、EMA、epoch、seed；3 seed 均值±std
+
+\subsection{主结果}
+% 表1：HomeObjects-3K 主结果（mAP50/95、参数、FLOPs、延迟）
+% 简述相对提升与对比方法
+
+\subsection{跨数据集与消融}
+% 表2：COCO-Indoor 验证结果（泛化）
+% 表3：插入位置/通道压缩比/EMA/增强/损失等消融
+% 表4：分辨率/主干规模（T/S/L）趋势
+% 表5：效率（GPU/CPU/端侧延迟，显存峰值）；Pareto 曲线
+
+\subsection{可视化与误差分析}
+% PR 曲线、混淆矩阵、小/中/大目标 AP 分解
+% 预测可视化与失败案例
+
+\section{讨论}
+% 何时/为何有效、与融合颈对比、局限与风险
+
+\section{结论与展望}
+% 小结；展望：CLIP 指令驱动，OVD 协议（COCO/LVIS base–novel）
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+\end{document}

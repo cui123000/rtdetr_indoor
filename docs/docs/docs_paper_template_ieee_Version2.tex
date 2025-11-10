@@ -1,0 +1,52 @@
+% Minimal IEEE-like short paper template (customize to target venue)
+\documentclass[conference]{IEEEtran}
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\begin{document}
+\title{Efficient Attention-Augmented MobileNetV4 for Real-Time Indoor Object Detection}
+
+\author{\IEEEauthorblockN{First Author, Second Author}
+\IEEEauthorblockA{Affiliation \\
+Email: \{first,last\}@example.com}
+}
+
+\maketitle
+
+\begin{abstract}
+We propose a lightweight attention insertion for MobileNetV4 within RT-DETR to improve indoor object detection under compute constraints. On HomeObjects-3K, our model (MNV4-SEA) improves mAP50 by \textbf{+14.4\%} over MNV4 baseline with only 29.06M parameters, and shows favorable accuracy–efficiency trade-off compared to popular real-time baselines. Cross-dataset validation on a COCO-Indoor subset confirms generalization. Code, configs, and dataset-generation scripts are released. Future work explores CLIP-instruction-driven detection.
+\end{abstract}
+
+\section{Introduction}
+% indoor challenges, mobile constraints, gap, contributions
+\textbf{Contributions:} (i) mobile-friendly attention insertion scheme; (ii) extensive ablations; (iii) efficiency study and cross-dataset validation; (iv) reproducibility.
+
+\section{Related Work}
+% Efficient CNNs (MobileNetV3/V4), Attention (SE/ECA/CBAM/SEA), Real-time detectors (YOLOv8/11, RT-DETR), OVD (Detic, OWL-ViT)
+
+\section{Method}
+% RT-DETR + MobileNetV4 recap; SEA module; insertion points; complexity
+% Figure 1: architecture diagram
+
+\section{Experiments}
+\subsection{Datasets and Metrics}
+% HomeObjects-3K; COCO-Indoor subset (script); COCO metrics
+\subsection{Implementation Details}
+% training schedule, seeds, hardware, versions
+\subsection{Main Results}
+% Table 1: main benchmark vs baselines (mAP50/95, Params, FLOPs, Latency)
+\subsection{Ablations and Efficiency}
+% Tables 3-5; PR curves, confusion matrix, qualitative
+
+\section{Discussion}
+% when/why SEA helps; limitations
+
+\section{Conclusion and Future Work}
+% summary + CLIP instruction-driven plan
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+\end{document}
