@@ -1,0 +1,4 @@
+Model,Parameters(M),Forward_Time(ms),Precision,Recall,mAP50,mAP50-95,Fitness,Batch_Size,Learning_Rate,Architecture
+RT-DETR-L,32.97,38.37,0.3453,0.3891,0.3163,0.2180,0.2278,16,0.003,HGNet Backbone
+RT-DETR-MNV4,24.98,39.40,0.5236,0.3925,0.4051,0.2680,0.2817,8,0.0015,MobileNetV4 Hybrid
+RT-DETR-MNV4-SEA,29.06,53.32,0.4901,0.4957,0.4782,0.3129,0.3294,6,0.0012,MobileNetV4 + SEA Attention

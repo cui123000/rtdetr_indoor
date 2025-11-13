@@ -98,7 +98,8 @@ def get_optimized_config(model_choice):
         'task': 'detect',
         'mode': 'train',
         'model': f'/home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/{model_config["file"]}',
-        'data': '/home/cui/rtdetr_indoor/datasets/homeobjects-3K/HomeObjects-3K.yaml',
+        # 指向数据盘上的数据集YAML
+        'data': '/root/autodl-tmp/database/homeobjects/HomeObjects-3K.yaml',
         
         # 核心训练参数 - 优化版本
         'epochs': 100,

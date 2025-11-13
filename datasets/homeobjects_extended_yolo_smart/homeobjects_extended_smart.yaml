@@ -1,0 +1,26 @@
+names:
+  0: bed
+  1: sofa
+  2: chair
+  3: table
+  4: clock
+  5: tv
+  6: laptop
+  7: plant
+  8: vase
+  9: book
+  10: bottle
+  11: cup
+  12: bowl
+  13: glass
+  14: refrigerator
+  15: microwave
+  16: toilet
+  17: keyboard
+  18: phone
+  19: remote
+  20: person
+nc: 21
+path: /home/cui/rtdetr_indoor/datasets/homeobjects_extended_yolo_smart
+train: images/train2017
+val: images/val2017

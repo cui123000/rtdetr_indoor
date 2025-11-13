@@ -125,8 +125,28 @@ def scale_boxes(img1_shape, boxes, img0_shape, ratio_pad=None, padding: bool = T
         pad_x = round((img1_shape[1] - img0_shape[1] * gain) / 2 - 0.1)
         pad_y = round((img1_shape[0] - img0_shape[0] * gain) / 2 - 0.1)
     else:
-        gain = ratio_pad[0][0]
-        pad_x, pad_y = ratio_pad[1]
+        # 修复类型错误：检查ratio_pad格式
+        if isinstance(ratio_pad, (list, tuple)) and len(ratio_pad) >= 2:
+            # 检查第一个元素是否是可下标的
+            if isinstance(ratio_pad[0], (list, tuple)):
+                gain = ratio_pad[0][0]  # 嵌套格式 [[gain], [pad_x, pad_y]]
+            else:
+                gain = ratio_pad[0]     # 简单格式 [gain, pad_x, pad_y] 或 [gain, (pad_x, pad_y)]
+            
+            # 检查第二个元素是否是可下标的
+            if isinstance(ratio_pad[1], (list, tuple)):
+                pad_x, pad_y = ratio_pad[1]
+            else:
+                # 如果第二个元素不是序列，尝试使用默认值或错误处理
+                if len(ratio_pad) > 2:
+                    pad_x, pad_y = ratio_pad[1], ratio_pad[2]
+                else:
+                    pad_x, pad_y = 0, 0
+        else:
+            # 如果ratio_pad格式不正确，回退到默认计算
+            gain = min(img1_shape[0] / img0_shape[0], img1_shape[1] / img0_shape[1])
+            pad_x = round((img1_shape[1] - img0_shape[1] * gain) / 2 - 0.1)
+            pad_y = round((img1_shape[0] - img0_shape[0] * gain) / 2 - 0.1)
 
     if padding:
         boxes[..., 0] -= pad_x  # x padding
