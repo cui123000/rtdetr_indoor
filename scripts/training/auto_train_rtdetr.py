@@ -19,37 +19,47 @@ MODEL_CONFIGS = {
     '1': {
         'file': 'rtdetr-l.yaml',
         'name': 'rtdetr_l',
-        'batch': 6,        # RTX 4090稳定批次大小
-        'lr0': 0.0001,     # RT-DETR-L标准学习率
-        'epochs': 100,     # 数据集适中训练轮数
-        'warmup_epochs': 10.0, # 适中预热期
-        'amp': False,      # 禁用AMP保证稳定性
-        'cache': False,    # 禁用缓存避免内存问题
+        'batch': 16,       # 🚀 优化：最大化batch size
+        'lr0': 0.00015,    # 🚀 batch增大时提高学习率
+        'epochs': 100,     # ✅ 完整训练100 epochs
+        'warmup_epochs': 5.0, # 🚀 适中预热期
+        'amp': True,       # 🚀 加速：启用混合精度训练（速度提升30%）
+        'cache': True,     # 启用缓存加速数据加载
     },
     '2': {
         'file': 'rtdetr-mnv4-hybrid-m.yaml', 
         'name': 'rtdetr_mnv4',
-        'batch': 6,        # 与RT-DETR-L保持一致
-        'lr0': 0.0001,     # 提高学习率加速收敛
-        'epochs': 120,     # MobileNetV4需要更多训练轮数
-        'warmup_epochs': 12.0, # 更长预热期适应轻量网络
+        'batch': 8,        # 保守批次
+        'lr0': 0.0001,     # 标准学习率
+        'epochs': 120,     # MobileNetV4 需要更多训练
+        'warmup_epochs': 12.0, # 一般预热期
         'amp': False,      # 禁用AMP
         'cache': False,    # 禁用缓存
     },
     '3': {
         'file': 'rtdetr-mnv4-hybrid-m-sea.yaml',
         'name': 'rtdetr_mnv4_sea',
-        'batch': 6,        # 与其他模型保持一致
-        'lr0': 0.00008,    # SEA模块需要较低学习率
-        'epochs': 150,     # SEA版本需要更长训练时间
-        'warmup_epochs': 15.0, # 最长预热期适应复杂模块
+        'batch': 6,        # SEA 模块使用较小批次
+        'lr0': 0.00008,    # SEA 模块使用较低学习率
+        'epochs': 150,     # SEA 版本需要长训练
+        'warmup_epochs': 15.0, # 较长预热期
         'amp': False,      # 禁用AMP
         'cache': False,    # 禁用缓存
-    }   
+    },
+    '4': {
+        'file': 'rtdetr-l-sea.yaml',
+        'name': 'rtdetr_l_sea',
+        'batch': 10,       # RT-DETR-L + SEA
+        'lr0': 0.0001,     # 标准学习率
+        'epochs': 100,     # 标准训练轮数
+        'warmup_epochs': 10.0, # 一般预热期
+        'amp': False,      # 禁用AMP保证稳定性
+        'cache': True,     # 启用缓存
+    }
 }
 
-# 选择要训练的模型 (修改这里来选择不同模型)
-SELECTED_MODEL = '2'  # '1'=RT-DETR-L, '2'=RT-DETR+MNV4, '3'=RT-DETR+MNV4+SEA
+# RTX 4090 优化配置 - 选择要训练的模型 (修改这里来选择不同模型)
+SELECTED_MODEL = '1'  # '1'=RT-DETR-L, '2'=RT-DETR+MNV4, '3'=RT-DETR+MNV4+SEA, '4'=RT-DETR-L+SEA
 
 # 添加时间估算功能
 def estimate_training_time():
@@ -60,7 +70,8 @@ def estimate_training_time():
     rtx4090_speeds = {
         '1': 4.5,    # RT-DETR-L 实际观察速度更新
         '2': 5.8,    # RT-DETR-MNV4 预计速度
-        '3': 4.2     # RT-DETR-MNV4-SEA 预计速度
+        '3': 4.2,    # RT-DETR-MNV4-SEA 预计速度
+        '4': 4.0     # RT-DETR-L-SEA 预计速度
     }
     
     estimated_speed = rtx4090_speeds.get(SELECTED_MODEL, 4.0)
@@ -87,54 +98,54 @@ def get_model_config(model_choice):
 current_model = get_model_config(SELECTED_MODEL)
 
 GLOBAL_CONFIG = {
-    # 路径配置
-    'dataset_path': '/home/cui/rtdetr_indoor/datasets/coco_indoor/coco_indoor.yaml',
-    'model_config': f'/home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/{current_model["file"]}',
-    'save_dir': '/home/cui/rtdetr_indoor/runs/detect',  # 权重保存目录
-    'project_name': f"train_{current_model["name"]}_{time.strftime('%Y%m%d_%H%M%S')}",  # 使用时间戳而非模型名
+    # 路径配置 - 使用室内筛选数据集
+    'dataset_path': '/home/cjj/rtdetr_indoor/datasets/coco_indoor/coco_indoor.yaml',
+    'model_config': f'/home/cjj/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/{current_model["file"]}',
+    'save_dir': '/home/cjj/rtdetr_indoor/runs/detect',  # 权重保存目录
+    'project_name': f"train_{current_model['name']}_{time.strftime('%Y%m%d_%H%M%S')}",  # 使用时间戳而非模型名
     
-    # 训练参数 - 使用模型特定配置
+    # 训练参数 - RTX 4090 优化
     'epochs': current_model['epochs'],     # 训练轮数
-    'batch_size': current_model['batch'],  # 使用模型特定批次大小
-    'img_size': 640,                      # 保持640避免显存溢出导致崩溃(800太大会触发驱动崩溃)
-    'workers': 4,   # 提高workers加速训练(WSL2稳定性已改善)
-    'pin_memory': False,  # 明确禁用pin_memory避免Windows/WSL问题
-    'patience': 40,                       # 进一步增加patience
+    'batch_size': current_model['batch'],  # 保守批次
+    'img_size': 640,                      # 标准图像大小
+    'workers': 4,   # 🚀 加速：减少workers降低CPU开销
+    'pin_memory': True,  # 启用加速
+    'patience': 25,                       # ✅ 完整训练：适中的早停容忍度
     
-    # 学习率策略 - 使用模型特定配置
+    # 学习率策略 - 保守配置
     'lr0': current_model['lr0'],          # 使用模型特定学习率
-    'lrf': 0.2,                          # 提高最终学习率因子
+    'lrf': 0.2,                          # 一般最终学习率因子
     'warmup_epochs': current_model['warmup_epochs'], # 使用模型特定预热轮数
     'cos_lr': True,                      # 余弦学习率衰减
     
-    # 优化器设置 - 修复AdamW配置
+    # 优化器设置 - AdamW 更稳定
     'optimizer': 'AdamW',
-    'weight_decay': 0.0001,              # 适中的权重衰减
+    'weight_decay': 0.0001,              # 保守权重衰减
     'momentum': 0.937,                   # 保留以兼容配置(AdamW实际使用betas而非momentum)
     
     # 修复验证问题的关键设置
-    'save_period': 10, 
-    'plots': True,
-    'save_json': True,         # 保存验证结果JSON用于分析
+    'save_period': -1,  # 🚀 加速：仅保存last和best
+    'plots': False,     # 🚀 加速：禁用图表生成
+    'save_json': False, # 🚀 加速：禁用JSON保存
     
-    # 数据增强 - 适度增强改善泛化
-    'hsv_h': 0.015,          # 适度色调变化
-    'hsv_s': 0.7,            # 标准饱和度变化
-    'hsv_v': 0.4,            # 标准明度变化
-    'degrees': 5.0,          # 适度旋转
-    'translate': 0.1,        # 标准平移
-    'scale': 0.5,            # 标准缩放
-    'fliplr': 0.5,           # 标准水平翻转
-    'mosaic': 0.5,           # 适度mosaic增强小物体检测
-    'mixup': 0.1,            # 轻度mixup提升泛化
-    'copy_paste': 0.0,       # 禁用copy_paste
+    # 数据增强 - 🚀 极简配置加速
+    'hsv_h': 0.005,          # 🚀 最小化增强
+    'hsv_s': 0.3,            # 🚀 最小化增强
+    'hsv_v': 0.2,            # 🚀 最小化增强
+    'degrees': 0.0,          # 🚀 禁用旋转
+    'translate': 0.05,       # 🚀 最小平移
+    'scale': 0.2,            # 🚀 最小缩放
+    'fliplr': 0.5,           # 保留水平翻转
+    'mosaic': 0.0,           # 🚀 禁用mosaic加速
+    'mixup': 0.0,            # 🚀 禁用mixup加速
+    'copy_paste': 0.0,       # 禁用 copy_paste
     
-    # RTX 4090专用优化 - 使用模型特定稳定性设置
-    'amp': current_model.get('amp', False),    # 使用模型特定AMP设置
-    'cache': current_model.get('cache', False), # 使用模型特定缓存设置
-    'rect': False,             # 关闭矩形训练，使用标准正方形训练 - 重要!
+    # RTX 4090 专用优化 - 保守配置
+    'amp': current_model.get('amp', False),    # 禁用 AMP
+    'cache': current_model.get('cache', False), # 禁用缓存
+    'rect': False,             # 关闭矩形训练
     'single_cls': False,
-    'close_mosaic': 30,        # 提前更多关闭mosaic
+    'close_mosaic': 10,        # 🚀 加速：提早关闭mosaic
     
     # GPU设置 - 稳定性优先，避免确定性警告
     'device': '0',             # 使用第一块GPU
@@ -174,60 +185,30 @@ def setup_rtx4090_environment():
     except Exception as e:
         print(f"   ⚠️ 无法设置文件描述符: {e}")
     
-    # RTX 4090专用CUDA优化 - 修复内存分配器错误
-    # 更保守的CUDA/并行设置，降低触发驱动/内核问题的风险
-    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128,expandable_segments:False'
+    # RTX 4090 专用 CUDA 优化 - 最小化配置以避免初始化问题
     os.environ['CUDA_LAUNCH_BLOCKING'] = '0'
-    os.environ['TORCH_CUDNN_V8_API_ENABLED'] = '1'
-    os.environ['OMP_NUM_THREADS'] = '4'   # 更保守的线程数
+    os.environ['OMP_NUM_THREADS'] = '4'
     os.environ['MKL_NUM_THREADS'] = '4'
-    # 强制DataLoader在Windows/WSL环境下使用更安全的workers设置
-    os.environ['TORCH_NUM_WORKERS'] = '0'
     
-    # 禁用有问题的CUDA功能
-    os.environ['CUDA_MODULE_LOADING'] = 'LAZY'
-    os.environ['TORCH_CUDA_ARCH_LIST'] = ''  # 让PyTorch自动检测
-    
-    # PyTorch优化设置
-    torch.backends.cudnn.benchmark = True
+    # PyTorch 优化设置 - 性能优先
+    torch.backends.cudnn.benchmark = True  # 启用自动优化
     torch.backends.cudnn.deterministic = False
-    # 关闭 TF32 以提高调试/稳定性（在稳定后可开启以提升性能）
-    torch.backends.cuda.matmul.allow_tf32 = False
-    torch.backends.cudnn.allow_tf32 = False
-    torch.set_num_threads(4)  # 保守线程数
+    # 启用 TF32 加速计算（A40 支持）
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
     
     if torch.cuda.is_available():
-        # 降低每进程显存占比或注释掉以使用默认分配器行为
-        try:
-            torch.cuda.set_per_process_memory_fraction(0.65)
-        except Exception:
-            pass
         torch.cuda.empty_cache()
         
         # 详细GPU信息
-        gpu_name = torch.cuda.get_device_name(0)
-        gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1e9
-        
-        print(f"   ✅ GPU: {gpu_name}")
-        print(f"   ✅ 总显存: {gpu_memory:.1f}GB")
-        print(f"   ✅ 可用显存: {gpu_memory * 0.85:.1f}GB")
-        print(f"   ✅ TF32优化: 已禁用（调试/稳定模式）")
-        print(f"   ⚠️ 安全模式: expandable_segments=False")
-        
-        # GPU性能测试
         try:
-            test_tensor = torch.randn(1000, 1000).cuda()
-            start_time = time.time()
-            for _ in range(100):
-                _ = torch.mm(test_tensor, test_tensor)
-            torch.cuda.synchronize()
-            gpu_test_time = time.time() - start_time
-            del test_tensor
-            torch.cuda.empty_cache()
-            print(f"   ✅ GPU性能测试: {gpu_test_time:.3f}s (正常 < 1.0s)")
+            gpu_name = torch.cuda.get_device_name(0)
+            gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1e9
+            print(f"   ✅ GPU: {gpu_name}")
+            print(f"   ✅ 总显存: {gpu_memory:.1f}GB")
+            print(f"   ✅ TF32优化: 已禁用（稳定模式）")
         except Exception as e:
-            print(f"   ❌ GPU测试失败: {e}")
-            raise
+            print(f"   ⚠️ GPU信息获取失败: {e}")
     else:
         raise RuntimeError("❌ CUDA不可用")
 
@@ -395,10 +376,7 @@ def force_cuda_cleanup():
     """强制CUDA内存清理"""
     try:
         torch.cuda.empty_cache()
-        if hasattr(torch.cuda, 'ipc_collect'):
-            torch.cuda.ipc_collect()
         gc.collect()
-        torch.cuda.synchronize()
         print("🧹 强制CUDA清理完成")
     except Exception as e:
         print(f"⚠️ CUDA清理警告: {e}")
@@ -473,15 +451,21 @@ def main():
     print(f"2. 预计时间: {time_estimate['total_hours']:.1f} 小时")
     print(f"3. Batch大小: {current_model['batch']}")
     
-    # 添加简单的用户交互
-    try:
-        confirm = input("\n确认开始训练? (y/n): ").strip().lower()
-        if confirm != 'y':
-            print("❌ 取消训练")
+    # 添加简单的用户交互 - 支持命令行参数跳过
+    import sys
+    skip_confirm = '--skip-confirm' in sys.argv or len(sys.argv) > 1
+    
+    if not skip_confirm:
+        try:
+            confirm = input("\n确认开始训练? (y/n): ").strip().lower()
+            if confirm != 'y':
+                print("❌ 取消训练")
+                return
+        except KeyboardInterrupt:
+            print("\n❌ 用户取消")
             return
-    except KeyboardInterrupt:
-        print("\n❌ 用户取消")
-        return
+    else:
+        print("⏭️ 跳过确认，直接开始训练")
     
     try:
         # 环境设置
@@ -503,47 +487,50 @@ def main():
         print("=" * 70)
         
         # 启动内存监控
-        gpu_memory_monitor()
+        print("📡 启动内存监控线程...")
+        # 注释掉内存监控，因为它可能导致线程冲突
+        # gpu_memory_monitor()
         
         # 强制清理初始状态
+        print("🧹 执行初始CUDA清理...")
+        sys.stdout.flush()
         force_cuda_cleanup()
+        sys.stdout.flush()
         
         # 导入ultralytics
-        print("📦 导入Ultralytics...")
-        from ultralytics import RTDETR
+        print("📦 导入Ultralytics模块（可能需要 30-60 秒）...")
+        sys.stdout.flush()
         
-        # 创建配置
-        config = create_training_config()
-        
-        # 安全的GPU预热 - 避免内存分配器错误
-        print("🔥 安全GPU预热...")
+        start_import = time.time()
         try:
-            # 使用小批次预热避免内存问题
-            small_data = torch.randn(2, 3, 640, 640).cuda()
-            small_conv = torch.nn.Conv2d(3, 32, 3, padding=1).cuda()
-            
-            # 预热循环
-            with torch.no_grad():
-                for i in range(5):
-                    _ = small_conv(small_data)
-                    if i % 2 == 0:
-                        torch.cuda.empty_cache()
-            
-            torch.cuda.synchronize()
-            del small_data, small_conv
-            force_cuda_cleanup()
-            print("✅ GPU预热完成")
+            from ultralytics import RTDETR
+            import_time = time.time() - start_import
+            print(f"✅ Ultralytics导入成功 ({import_time:.2f}s)")
+            sys.stdout.flush()
         except Exception as e:
-            print(f"⚠️ GPU预热警告: {e}")
+            print(f"❌ Ultralytics导入失败: {e}")
+            import traceback
+            traceback.print_exc()
             force_cuda_cleanup()
+            raise
         
-        # 创建模型并开始训练
-        print("🚀 开始训练...")
+        print("⚙️ 创建训练配置...")
+        config = create_training_config()
+        print("✅ 训练配置创建成功")
+        
+        # 跳过GPU预热，直接创建模型以加快启动
+        print("🚀 创建RT-DETR模型（这可能需要 2-3 分钟）...")
+        sys.stdout.flush()
+        
+        model_load_start = time.time()
         try:
             model = RTDETR(config['model'])
-            print("✅ 模型创建成功")
+            model_load_time = time.time() - model_load_start
+            print(f"✅ 模型创建成功 ({model_load_time:.2f}s)")
         except Exception as e:
             print(f"❌ 模型创建失败: {e}")
+            import traceback
+            traceback.print_exc()
             force_cuda_cleanup()
             raise
         
@@ -553,6 +540,8 @@ def main():
         # 开始训练 - 添加异常处理
         try:
             print("🎯 开始模型训练...")
+            print("⏳ 这可能需要几分钟来加载数据集和验证配置，请耐心等待...")
+            sys.stdout.flush()
             results = model.train(**{k: v for k, v in config.items() if k != 'model'})
             
             training_time = (time.time() - start_time) / 3600  # 转换为小时

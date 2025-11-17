@@ -1,0 +1,49 @@
+# Ultralytics 🚀 AGPL-3.0 License
+
+# RT-DETR with GhostNet Backbone (轻量化)
+# GhostNet: 使用 Ghost Module 减少参数和计算量
+
+nc: 80
+scales:
+  m: [0.67, 0.75, 768]
+
+backbone:
+  # GhostNet backbone (轻量级)
+  - [-1, 1, Conv, [16, 3, 2]]  # 0-P1/2
+  - [-1, 1, GhostConv, [16]]   # 1
+  - [-1, 1, GhostConv, [24, 2]]  # 2-P2/4
+  - [-1, 2, GhostConv, [24]]   # 3
+  - [-1, 1, GhostConv, [40, 2]]  # 4-P3/8
+  - [-1, 2, GhostConv, [40]]   # 5
+  - [-1, 1, GhostConv, [80, 2]]  # 6-P4/16
+  - [-1, 3, GhostConv, [80]]   # 7
+  - [-1, 1, GhostConv, [112]]  # 8
+  - [-1, 3, GhostConv, [112]]  # 9
+  - [-1, 1, GhostConv, [160, 2]]  # 10-P5/32
+  - [-1, 3, GhostConv, [160]]  # 11
+  
+head:
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]
+  - [-1, 1, AIFI, [512, 8]]  # 轻量化 AIFI
+  - [-1, 1, Conv, [256, 1, 1]]
+  
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [9, 1, Conv, [256, 1, 1, None, 1, 1, False]]
+  - [[-2, -1], 1, Concat, [1]]
+  - [-1, 3, C3Ghost, [256]]  # 轻量化 C3
+  - [-1, 1, Conv, [256, 1, 1]]
+  
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [5, 1, Conv, [256, 1, 1, None, 1, 1, False]]
+  - [[-2, -1], 1, Concat, [1]]
+  - [-1, 3, C3Ghost, [256]]
+  
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 19], 1, Concat, [1]]
+  - [-1, 3, C3Ghost, [256]]
+  
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 14], 1, Concat, [1]]
+  - [-1, 3, C3Ghost, [256]]
+  
+  - [[23, 26, 29], 1, RTDETRDecoder, [nc]]

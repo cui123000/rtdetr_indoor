@@ -1,0 +1,49 @@
+# Ultralytics 🚀 AGPL-3.0 License
+
+# RT-DETR with ShuffleNetV2 + SEA
+# 极致轻量化 + 注意力增强精度
+
+nc: 80
+scales:
+  s: [0.33, 0.50, 512]
+
+backbone:
+  # ShuffleNetV2 backbone (极轻量)
+  - [-1, 1, Conv, [24, 3, 2]]  # 0-P1/2
+  - [-1, 1, DWConv, [24, 3, 1, 1, False]]
+  
+  - [-1, 4, Shuffle_Block, [48, 2]]  # 2-P2/4
+  - [-1, 8, Shuffle_Block, [96, 2]]  # 3-P3/8
+  - [-1, 1, ECA, [96]]  # 轻量级注意力
+  
+  - [-1, 4, Shuffle_Block, [192, 2]]  # 5-P4/16
+  - [-1, 1, ECA, [192]]
+  
+  - [-1, 4, Shuffle_Block, [384, 2]]  # 7-P5/32
+  - [-1, 1, OptimizedSEA_Attention, [384]]  # SEA提升精度
+  
+head:
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]
+  - [-1, 1, AIFI, [512, 4]]  # 减少head数
+  - [-1, 1, Conv, [256, 1, 1]]
+  
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [6, 1, Conv, [256, 1, 1, None, 1, 1, False]]
+  - [[-2, -1], 1, Concat, [1]]
+  - [-1, 2, C2f, [256, True]]  # 轻量化
+  - [-1, 1, Conv, [256, 1, 1]]
+  
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
+  - [4, 1, Conv, [256, 1, 1, None, 1, 1, False]]
+  - [[-2, -1], 1, Concat, [1]]
+  - [-1, 2, C2f, [256, True]]
+  
+  - [-1, 1, DWConv, [256, 3, 2, 1, False]]  # 深度可分离卷积
+  - [[-1, 18], 1, Concat, [1]]
+  - [-1, 2, C2f, [256, True]]
+  
+  - [-1, 1, DWConv, [256, 3, 2, 1, False]]
+  - [[-1, 12], 1, Concat, [1]]
+  - [-1, 2, C2f, [256, True]]
+  
+  - [[23, 26, 29], 1, RTDETRDecoder, [nc]]

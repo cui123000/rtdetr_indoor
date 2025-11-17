@@ -129,11 +129,11 @@ def is_likely_indoor_scene(old_class_ids, target_object_count):
 def filter_homeobjects_extended_smart():
     """从COCO原始数据集筛选HomeObjects扩展类别，更严格的室内筛选控制数据集大小"""
     
-    source_root = Path('/home/cui/rtdetr_indoor/datasets/coco')
-    output_root = Path('/home/cui/rtdetr_indoor/datasets/coco_indoor')
+    source_root = Path('/home/cjj/rtdetr_indoor/datasets/coco')
+    output_root = Path('/home/cjj/rtdetr_indoor/datasets/coco_indoor')
     
     if not source_root.exists():
-        print("❌ COCO原始数据集不存在: /home/cui/rtdetr_indoor/datasets/coco")
+        print("❌ COCO原始数据集不存在: /home/cjj/rtdetr_indoor/datasets/coco")
         return False
         
     if output_root.exists():
