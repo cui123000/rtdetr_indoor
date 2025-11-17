@@ -1,52 +1,45 @@
-# Python缓存
+# ===== .gitignore for rtdetr_indoor =====
+
+# ---- Python artefacts ----
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
 .Python
 *.so
-.cache/
 
-# 大文件 - 权重文件
+# ---- Virtualenv / caches ----
+.cache/
+venv/
+env/
+
+# ---- Large model weights (do not commit) ----
 *.pt
 *.pth
 *.onnx
 *.bin
 *.safetensors
 
-# 数据集 - 太大不适合git
-datasets/homeobjects_extended_yolo_smart/images/
-datasets/homeobjects_extended_yolo_smart/labels/
-datasets/**/*.jpg
-datasets/**/*.png
-datasets/**/*.jpeg
+# ---- Dataset files (do not commit) ----
+datasets/
 
-# 临时和日志文件
-*.tmp
-*.log
+# ---- Training outputs / logs ----
+runs/
 logs/
-runs/detect/
-.autodl/
 
-# IDE和编辑器
+# ---- System / editor files ----
+.DS_Store
+Thumbs.db
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# 系统文件
-.DS_Store
-Thumbs.db
-
-# 大型第三方库 (保留配置)
-# RT-DETR_1/ # 如果太大可以取消注释
-
-# 训练输出 (太大)
+# ---- Misc ----
 /root/autodl-tmp/
 
-# 排除clash代理工具
-clash-for-AutoDL/
+# End
+# RT-DETR_1/ # 如果太大可以取消注释
 
-EOF
 
