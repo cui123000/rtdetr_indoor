@@ -18,41 +18,38 @@ import threading
 MODEL_CONFIGS = {
     '1': {
         'file': 'rtdetr-l.yaml',
-        'name': 'rtdetr_l_homeobjects_smart_optimized',
-        'batch': 10,        # 降低批次避免NaN
-        'lr0': 0.0001,     # 大幅降低学习率防止NaN
-        'workers': 4,      # 减少workers提升稳定性
-        'epochs': 100,     # 减少epochs，数据集较小
-        'warmup_epochs': 10.0, # 增加预热期
-        'amp': False,      # 禁用AMP提升稳定性
+        'name': 'rtdetr_l',
+        'batch': 6,        # RTX 4090稳定批次大小
+        'lr0': 0.0001,     # RT-DETR-L标准学习率
+        'epochs': 100,     # 数据集适中训练轮数
+        'warmup_epochs': 10.0, # 适中预热期
+        'amp': False,      # 禁用AMP保证稳定性
         'cache': False,    # 禁用缓存避免内存问题
     },
     '2': {
         'file': 'rtdetr-mnv4-hybrid-m.yaml', 
-        'name': 'rtdetr_mnv4_hybrid_rtx4090_safe',
-        'batch': 8,        # 更保守的batch size
-        'lr0': 0.00008,    # 更低的学习率
-        'workers': 4,      # 减少workers
-        'epochs': 100,     # MNV4需要更多训练轮数
-        'warmup_epochs': 12.0, # 更长预热期
+        'name': 'rtdetr_mnv4',
+        'batch': 6,        # 与RT-DETR-L保持一致
+        'lr0': 0.0001,     # 提高学习率加速收敛
+        'epochs': 120,     # MobileNetV4需要更多训练轮数
+        'warmup_epochs': 12.0, # 更长预热期适应轻量网络
         'amp': False,      # 禁用AMP
         'cache': False,    # 禁用缓存
     },
     '3': {
         'file': 'rtdetr-mnv4-hybrid-m-sea.yaml',
-        'name': 'rtdetr_mnv4_sea_rtx4090_safe',
-        'batch': 6,        # 最保守的batch size
-        'lr0': 0.00006,    # 最低学习率
-        'workers': 4,      # 减少workers
-        'epochs': 100,     # SEA版本需要最多训练轮数
-        'warmup_epochs': 15.0, # 最长预热期
+        'name': 'rtdetr_mnv4_sea',
+        'batch': 6,        # 与其他模型保持一致
+        'lr0': 0.00008,    # SEA模块需要较低学习率
+        'epochs': 150,     # SEA版本需要更长训练时间
+        'warmup_epochs': 15.0, # 最长预热期适应复杂模块
         'amp': False,      # 禁用AMP
         'cache': False,    # 禁用缓存
     }   
 }
 
 # 选择要训练的模型 (修改这里来选择不同模型)
-SELECTED_MODEL = '1'  # '1'=RT-DETR-L, '2'=RT-DETR+MNV4, '3'=RT-DETR+MNV4+SEA
+SELECTED_MODEL = '2'  # '1'=RT-DETR-L, '2'=RT-DETR+MNV4, '3'=RT-DETR+MNV4+SEA
 
 # 添加时间估算功能
 def estimate_training_time():
@@ -91,16 +88,17 @@ current_model = get_model_config(SELECTED_MODEL)
 
 GLOBAL_CONFIG = {
     # 路径配置
-    'dataset_path': '/home/cui/rtdetr_indoor/datasets/homeobjects_extended_yolo_smart/homeobjects_extended_smart.yaml',
+    'dataset_path': '/home/cui/rtdetr_indoor/datasets/coco_indoor/coco_indoor.yaml',
     'model_config': f'/home/cui/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/{current_model["file"]}',
-    'save_dir': '/root/autodl-tmp/rtdetr_weights',  # 权重保存目录
-    'project_name': current_model['name'],
+    'save_dir': '/home/cui/rtdetr_indoor/runs/detect',  # 权重保存目录
+    'project_name': f"train_{current_model["name"]}_{time.strftime('%Y%m%d_%H%M%S')}",  # 使用时间戳而非模型名
     
     # 训练参数 - 使用模型特定配置
     'epochs': current_model['epochs'],     # 训练轮数
     'batch_size': current_model['batch'],  # 使用模型特定批次大小
-    'img_size': 640,                      # 输入图像尺寸
-    'workers': current_model['workers'],   # 使用模型特定workers数
+    'img_size': 640,                      # 保持640避免显存溢出导致崩溃(800太大会触发驱动崩溃)
+    'workers': 4,   # 提高workers加速训练(WSL2稳定性已改善)
+    'pin_memory': False,  # 明确禁用pin_memory避免Windows/WSL问题
     'patience': 40,                       # 进一步增加patience
     
     # 学习率策略 - 使用模型特定配置
@@ -109,27 +107,27 @@ GLOBAL_CONFIG = {
     'warmup_epochs': current_model['warmup_epochs'], # 使用模型特定预热轮数
     'cos_lr': True,                      # 余弦学习率衰减
     
-    # 优化器设置 - 更保守参数
+    # 优化器设置 - 修复AdamW配置
     'optimizer': 'AdamW',
-    'weight_decay': 0.00005,             # 大幅降低权重衰减
-    'momentum': 0.8,                     # 降低momentum
+    'weight_decay': 0.0001,              # 适中的权重衰减
+    'momentum': 0.937,                   # 保留以兼容配置(AdamW实际使用betas而非momentum)
     
     # 修复验证问题的关键设置
     'save_period': 10, 
     'plots': True,
     'save_json': True,         # 保存验证结果JSON用于分析
     
-    # 数据增强 - 极度保守防止训练不稳定
-    'hsv_h': 0.005,          # 极小色调变化
-    'hsv_s': 0.1,            # 极小饱和度变化
-    'hsv_v': 0.1,            # 极小明度变化
-    'degrees': 1.0,          # 极小旋转
-    'translate': 0.02,       # 极小平移
-    'scale': 0.1,            # 极小缩放
-    'fliplr': 0.3,           # 减少翻转
-    'mosaic': 0.1,           # 大幅减少mosaic
-    'mixup': 0.0,            # 完全禁用mixup
-    'copy_paste': 0.0,       # 完全禁用copy_paste
+    # 数据增强 - 适度增强改善泛化
+    'hsv_h': 0.015,          # 适度色调变化
+    'hsv_s': 0.7,            # 标准饱和度变化
+    'hsv_v': 0.4,            # 标准明度变化
+    'degrees': 5.0,          # 适度旋转
+    'translate': 0.1,        # 标准平移
+    'scale': 0.5,            # 标准缩放
+    'fliplr': 0.5,           # 标准水平翻转
+    'mosaic': 0.5,           # 适度mosaic增强小物体检测
+    'mixup': 0.1,            # 轻度mixup提升泛化
+    'copy_paste': 0.0,       # 禁用copy_paste
     
     # RTX 4090专用优化 - 使用模型特定稳定性设置
     'amp': current_model.get('amp', False),    # 使用模型特定AMP设置
@@ -177,12 +175,14 @@ def setup_rtx4090_environment():
         print(f"   ⚠️ 无法设置文件描述符: {e}")
     
     # RTX 4090专用CUDA优化 - 修复内存分配器错误
-    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:256,expandable_segments:False'
+    # 更保守的CUDA/并行设置，降低触发驱动/内核问题的风险
+    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:128,expandable_segments:False'
     os.environ['CUDA_LAUNCH_BLOCKING'] = '0'
     os.environ['TORCH_CUDNN_V8_API_ENABLED'] = '1'
-    os.environ['OMP_NUM_THREADS'] = '6'   # 减少线程数避免冲突
-    os.environ['MKL_NUM_THREADS'] = '6'
-    os.environ['TORCH_NUM_WORKERS'] = str(current_model['workers'])
+    os.environ['OMP_NUM_THREADS'] = '4'   # 更保守的线程数
+    os.environ['MKL_NUM_THREADS'] = '4'
+    # 强制DataLoader在Windows/WSL环境下使用更安全的workers设置
+    os.environ['TORCH_NUM_WORKERS'] = '0'
     
     # 禁用有问题的CUDA功能
     os.environ['CUDA_MODULE_LOADING'] = 'LAZY'
@@ -191,12 +191,17 @@ def setup_rtx4090_environment():
     # PyTorch优化设置
     torch.backends.cudnn.benchmark = True
     torch.backends.cudnn.deterministic = False
-    torch.backends.cuda.matmul.allow_tf32 = True
-    torch.backends.cudnn.allow_tf32 = True
-    torch.set_num_threads(6)  # 减少线程数避免冲突
+    # 关闭 TF32 以提高调试/稳定性（在稳定后可开启以提升性能）
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+    torch.set_num_threads(4)  # 保守线程数
     
     if torch.cuda.is_available():
-        torch.cuda.set_per_process_memory_fraction(0.85)  # 使用85%显存，更安全
+        # 降低每进程显存占比或注释掉以使用默认分配器行为
+        try:
+            torch.cuda.set_per_process_memory_fraction(0.65)
+        except Exception:
+            pass
         torch.cuda.empty_cache()
         
         # 详细GPU信息
@@ -206,7 +211,7 @@ def setup_rtx4090_environment():
         print(f"   ✅ GPU: {gpu_name}")
         print(f"   ✅ 总显存: {gpu_memory:.1f}GB")
         print(f"   ✅ 可用显存: {gpu_memory * 0.85:.1f}GB")
-        print(f"   ✅ TF32优化: 已启用")
+        print(f"   ✅ TF32优化: 已禁用（调试/稳定模式）")
         print(f"   ⚠️ 安全模式: expandable_segments=False")
         
         # GPU性能测试
@@ -291,6 +296,7 @@ def create_training_config():
         'imgsz': GLOBAL_CONFIG['img_size'],
         'patience': GLOBAL_CONFIG['patience'],
         'workers': GLOBAL_CONFIG['workers'],
+        # pin_memory由PyTorch/DataLoader内部处理,不是Ultralytics的参数
         'device': GLOBAL_CONFIG['device'],
         
         # 优化设置
@@ -372,14 +378,15 @@ def gpu_memory_monitor():
         while True:
             if torch.cuda.is_available():
                 allocated = torch.cuda.memory_allocated(0) / 1e9
-                if allocated > 16.0:  # 超过16GB时清理，更保守
+                # 更早触发清理以避免驱动压力
+                if allocated > 12.0:  # 超过12GB时清理，更保守
                     print(f"🧹 触发GPU内存清理: {allocated:.1f}GB")
                     torch.cuda.empty_cache()
                     gc.collect()
                     torch.cuda.synchronize()
                     new_allocated = torch.cuda.memory_allocated(0) / 1e9
                     print(f"   清理后: {new_allocated:.1f}GB")
-            time.sleep(10)  # 更频繁的检查
+            time.sleep(5)  # 更频繁的检查
     
     monitor_thread = threading.Thread(target=monitor, daemon=True)
     monitor_thread.start()
@@ -404,12 +411,10 @@ def copy_best_weights(results, config):
         best_weight = weights_dir / 'best.pt'
         
         if best_weight.exists():
-            # 复制到目标目录
-            final_name = f"homeobjects_rtdetr_best_{time.strftime('%Y%m%d_%H%M%S')}.pt"
-            if config['project'].startswith('/root/autodl-tmp'):
-                final_path = Path('/root/autodl-tmp') / final_name
-            else:
-                final_path = Path(config['project']) / final_name
+            # 复制到目标目录(使用模型名+时间戳)
+            model_name = current_model['name']
+            final_name = f"homeobjects_{model_name}_best_{time.strftime('%Y%m%d_%H%M%S')}.pt"
+            final_path = Path(config['project']) / final_name
                 
             shutil.copy2(best_weight, final_path)
             print(f"✅ 最佳权重已保存: {final_path}")

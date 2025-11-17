@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # Download COCO 2017 dataset (train/val and annotations) with resume and extraction.
+# Also optionally download label zips (box labels and/or segmentation labels).
 # Usage:
-#   ./download_coco2017.sh [--dst DIR] [--with-test] [--skip-extract]
+#   ./download_coco2017.sh [--dst DIR] [--with-test] [--with-labels] [--with-segments] [--skip-extract]
 # Examples:
-#   ./download_coco2017.sh                      # to datasets/coco under repo root
-#   ./download_coco2017.sh --dst /data/coco     # custom destination
-#   ./download_coco2017.sh --with-test          # also download test2017.zip
-#   ./download_coco2017.sh --skip-extract       # only download zips
+#   ./download_coco2017.sh                              # to datasets/coco under repo root
+#   ./download_coco2017.sh --dst /data/coco             # custom destination
+#   ./download_coco2017.sh --with-test                  # also download test2017.zip
+#   ./download_coco2017.sh --with-labels                # download box labels zip
+#   ./download_coco2017.sh --with-segments              # download segmentation labels zip
+#   ./download_coco2017.sh --with-labels --with-segments
+#   ./download_coco2017.sh --skip-extract               # only download zips
 
 set -euo pipefail
 
@@ -15,6 +19,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 DST="${REPO_ROOT}/datasets/coco"
 WITH_TEST=0
+WITH_LABELS=0
+WITH_SEGMENTS=0
 SKIP_EXTRACT=0
 
 while [[ $# -gt 0 ]]; do
@@ -25,6 +31,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --with-test)
       WITH_TEST=1
+      shift
+      ;;
+    --with-labels)
+      WITH_LABELS=1
+      shift
+      ;;
+    --with-segments)
+      WITH_SEGMENTS=1
       shift
       ;;
     --skip-extract)
@@ -69,6 +83,7 @@ TRAIN_URL="http://images.cocodataset.org/zips/train2017.zip"
 VAL_URL="http://images.cocodataset.org/zips/val2017.zip"
 TEST_URL="http://images.cocodataset.org/zips/test2017.zip"
 ANNO_URL="http://images.cocodataset.org/annotations/annotations_trainval2017.zip"
+LABELS_URL_BASE="https://github.com/ultralytics/assets/releases/download/v0.0.0"
 
 # Download
 _download "$TRAIN_URL" "train2017.zip"
@@ -92,11 +107,11 @@ extract_zip() {
     echo "Missing zip: $zipf (skip)"
     return 0
   fi
-  echo "Extracting: $zipf"
+  echo "Extracting: $zipf -> $(dirname "$zipf")"
   if have_cmd unzip; then
-    unzip -q -o "$zipf"
+    unzip -q -o "$zipf" -d "$(dirname "$zipf")"
   elif have_cmd bsdtar; then
-    bsdtar -xf "$zipf"
+    bsdtar -xf "$zipf" -C "$(dirname "$zipf")"
   else
     echo "Neither unzip nor bsdtar is available. Please install unzip." >&2
     exit 1
@@ -108,6 +123,20 @@ extract_zip val2017.zip
 extract_zip annotations_trainval2017.zip
 if [[ "$WITH_TEST" -eq 1 ]]; then
   extract_zip test2017.zip
+fi
+
+# Optional: download label zips (box labels / segments) into datasets parent dir
+if [[ "$WITH_LABELS" -eq 1 || "$WITH_SEGMENTS" -eq 1 ]]; then
+  LABELS_DIR="$(dirname "${DST}")"
+  mkdir -p "${LABELS_DIR}"
+  if [[ "$WITH_LABELS" -eq 1 ]]; then
+    _download "${LABELS_URL_BASE}/coco2017labels.zip" "${LABELS_DIR}/coco2017labels.zip"
+    extract_zip "${LABELS_DIR}/coco2017labels.zip"
+  fi
+  if [[ "$WITH_SEGMENTS" -eq 1 ]]; then
+    _download "${LABELS_URL_BASE}/coco2017labels-segments.zip" "${LABELS_DIR}/coco2017labels-segments.zip"
+    extract_zip "${LABELS_DIR}/coco2017labels-segments.zip"
+  fi
 fi
 
 echo "Extraction done. Structure:"

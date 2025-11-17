@@ -31,45 +31,30 @@ rsync -av --progress \
     --exclude='.cache' \
     --exclude='runs/detect' \
     --exclude='*.tmp' \
+    --exclude='datasets/coco/images/' \
+    --exclude='datasets/coco/labels/' \
+    --exclude='datasets/coco_indoor/images/' \
+    --exclude='datasets/coco_indoor/labels/' \
+    --exclude='datasets/homeobjects_extended_yolo_smart/images/' \
+    --exclude='datasets/homeobjects_extended_yolo_smart/labels/' \
+    --exclude='*.jpg' \
+    --exclude='*.png' \
+    --exclude='*.jpeg' \
+    --exclude='*.pt' \
+    --exclude='*.pth' \
     "$PROJECT_DIR/" "$BACKUP_DIR/rtdetr_indoor/"
 
-# 2. 复制关键训练权重
-echo "📋 2. 备份关键权重文件..."
-mkdir -p "$BACKUP_DIR/weights"
-if [ -f "$PROJECT_DIR/rtdetr-l.pt" ]; then
-    cp "$PROJECT_DIR/rtdetr-l.pt" "$BACKUP_DIR/weights/"
-    echo "   ✅ rtdetr-l.pt (预训练权重)"
-fi
+# 2. 跳过权重文件(太大,不适合GitHub)
+echo "📋 2. 跳过权重文件备份..."
+echo "   ⚠️ 权重文件已排除(*.pt, *.pth文件太大)"
+echo "   💡 如需备份权重,请使用Git LFS或云存储"
 
-if [ -f "$PROJECT_DIR/yolo11n.pt" ]; then
-    cp "$PROJECT_DIR/yolo11n.pt" "$BACKUP_DIR/weights/"
-    echo "   ✅ yolo11n.pt (对比权重)"
-fi
+# 3. 数据集配置文件已包含在主项目中
+echo "📋 3. 数据集配置..."
+echo "   ✅ YAML配置文件已包含"
+echo "   ⚠️ 图片和标注文件已排除(数据集太大)"
 
-# 3. 备份训练结果
-echo "📋 3. 备份训练结果..."
-if [ -d "$AUTODL_DIR/rtdetr_weights" ]; then
-    mkdir -p "$BACKUP_DIR/trained_weights"
-    rsync -av --progress "$AUTODL_DIR/rtdetr_weights/" "$BACKUP_DIR/trained_weights/"
-    echo "   ✅ 训练权重已备份"
-else
-    echo "   ⚠️ 未找到训练权重"
-fi
-
-# 4. 创建数据集描述文件(不包含图片)
-echo "📋 4. 创建数据集描述..."
-mkdir -p "$BACKUP_DIR/dataset_info"
-
-# 数据集统计信息
-if [ -d "$PROJECT_DIR/datasets" ]; then
-    echo "数据集信息:" > "$BACKUP_DIR/dataset_info/dataset_summary.txt"
-    find "$PROJECT_DIR/datasets" -name "*.yaml" -exec cp {} "$BACKUP_DIR/dataset_info/" \;
-    find "$PROJECT_DIR/datasets" -type f | wc -l >> "$BACKUP_DIR/dataset_info/file_count.txt"
-    du -sh "$PROJECT_DIR/datasets" >> "$BACKUP_DIR/dataset_info/dataset_size.txt"
-    echo "   ✅ 数据集信息已保存"
-fi
-
-# 5. 创建完整的项目说明
+# 4. 创建完整的项目说明
 cat > "$BACKUP_DIR/BACKUP_README.md" << 'EOF'
 # RT-DETR HomeObjects 项目备份
 
@@ -111,7 +96,7 @@ rtdetr_backup_YYYYMMDD_HHMMSS/
 
 EOF
 
-# 6. 生成文件清单
+# 5. 生成文件清单
 echo "📋 5. 生成文件清单..."
 find "$BACKUP_DIR" -type f > "$BACKUP_DIR/file_list.txt"
 echo "文件总数: $(wc -l < "$BACKUP_DIR/file_list.txt")"

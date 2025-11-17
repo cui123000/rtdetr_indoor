@@ -33,13 +33,6 @@ else
     echo "✅ 发现conda环境 'rtdetr'"
 fi
 
-# 检查权重保存目录
-echo "📁 检查权重保存目录..."
-if [ -d "/root/autodl-tmp/rtdetr_weights" ] && [ -w "/root/autodl-tmp/rtdetr_weights" ]; then
-    echo "✅ 权重目录已就绪: /root/autodl-tmp/rtdetr_weights"
-else
-    echo "⚠️ /root/autodl-tmp/rtdetr_weights 不可写，将使用备用目录"
-fi
 
 # 启动tmux会话进行训练
 echo "🖥️  启动tmux训练会话..."

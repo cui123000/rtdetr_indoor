@@ -129,11 +129,11 @@ def is_likely_indoor_scene(old_class_ids, target_object_count):
 def filter_homeobjects_extended_smart():
     """从COCO原始数据集筛选HomeObjects扩展类别，更严格的室内筛选控制数据集大小"""
     
-    source_root = Path('/root/autodl-tmp/database/coco')
-    output_root = Path('datasets/homeobjects_extended_yolo_smart')
+    source_root = Path('/home/cui/rtdetr_indoor/datasets/coco')
+    output_root = Path('/home/cui/rtdetr_indoor/datasets/coco_indoor')
     
     if not source_root.exists():
-        print("❌ COCO原始数据集不存在: /root/autodl-tmp/database/coco")
+        print("❌ COCO原始数据集不存在: /home/cui/rtdetr_indoor/datasets/coco")
         return False
         
     if output_root.exists():
@@ -268,7 +268,7 @@ def filter_homeobjects_extended_smart():
         'nc': len(HOMEOBJECTS_EXTENDED_NAMES)
     }
     
-    with open(output_root / 'homeobjects_extended_smart.yaml', 'w') as f:
+    with open(output_root / 'coco_indoor.yaml', 'w') as f:
         yaml.safe_dump(config, f, default_flow_style=False)
     
     # 输出统计
@@ -316,8 +316,8 @@ if __name__ == "__main__":
     
     if success:
         print("\n✅ HomeObjects精简智能室内数据集筛选完成！")
-        print("📁 数据集位置: ./datasets/homeobjects_extended_yolo_smart/")
-        print("📄 配置文件: ./datasets/homeobjects_extended_yolo_smart/homeobjects_extended_smart.yaml")
+        print("📁 数据集位置: ./datasets/coco_indoor/")
+        print("📄 配置文件: ./datasets/coco_indoor/coco_indoor.yaml")
         print("🎯 优势：高质量、精简、高室内纯度")
         print("🚀 数据集已准备好用于RT-DETR训练！")
     else:
