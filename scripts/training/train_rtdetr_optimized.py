@@ -71,20 +71,32 @@ def get_optimized_config(model_choice):
         '1': {
             'file': 'rtdetr-l.yaml',
             'name': 'rtdetr_l_optimized',
-            'batch': 6,      # 原始模型可以用更大batch
+            'batch': 6,
             'lr0': 0.001,
         },
         '2': {
-            'file': 'rtdetr-mnv4-hybrid-m.yaml', 
+            'file': 'rtdetr-mnv4-hybrid-m.yaml',
             'name': 'rtdetr_mnv4_hybrid_optimized',
-            'batch': 4,      # 混合模型中等batch
+            'batch': 4,
             'lr0': 0.0008,
         },
         '3': {
             'file': 'rtdetr-mnv4-hybrid-m-sea.yaml',
             'name': 'rtdetr_mnv4_sea_optimized',
-            'batch': 3,      # SEA模型最小batch以节省内存
+            'batch': 3,
             'lr0': 0.0005,
+        },
+        '4': {
+            'file': 'rtdetr-l-sea.yaml',
+            'name': 'rtdetr_l_sea_optimized',
+            'batch': 5,
+            'lr0': 0.0009,
+        },
+        '11': {
+            'file': 'ert-detr.yaml',
+            'name': 'ert_detr_optimized',
+            'batch': 8,
+            'lr0': 0.0006,
         }
     }
     

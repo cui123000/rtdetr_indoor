@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-RTX 4090专用RT-DETR自动训练脚本 - 全局配置版
+RT-DETR自动训练脚本 - 全局配置版
 使用智能筛选的HomeObjects数据集，最快速度完成训练
 """
 
@@ -19,63 +19,81 @@ MODEL_CONFIGS = {
     '1': {
         'file': 'rtdetr-l.yaml',
         'name': 'rtdetr_l',
-        'batch': 16,       # 🚀 优化：最大化batch size
-        'lr0': 0.00015,    # 🚀 batch增大时提高学习率
-        'epochs': 100,     # ✅ 完整训练100 epochs
-        'warmup_epochs': 5.0, # 🚀 适中预热期
-        'amp': True,       # 🚀 加速：启用混合精度训练（速度提升30%）
-        'cache': True,     # 启用缓存加速数据加载
+        'batch': 24,
+        'lr0': 0.0004,
+        'epochs': 100,
+        'warmup_epochs': 8.0,
+        'amp': True,
+        'cache': True,
     },
     '2': {
-        'file': 'rtdetr-mnv4-hybrid-m.yaml', 
+        'file': 'rtdetr-mnv4-hybrid-m.yaml',
         'name': 'rtdetr_mnv4',
-        'batch': 8,        # 保守批次
-        'lr0': 0.0001,     # 标准学习率
-        'epochs': 120,     # MobileNetV4 需要更多训练
-        'warmup_epochs': 12.0, # 一般预热期
-        'amp': False,      # 禁用AMP
-        'cache': False,    # 禁用缓存
+        'batch': 32,
+        'lr0': 0.0004,
+        'epochs': 100,
+        'warmup_epochs': 8.0,
+        'amp': True,
+        'cache': True,
     },
     '3': {
         'file': 'rtdetr-mnv4-hybrid-m-sea.yaml',
         'name': 'rtdetr_mnv4_sea',
-        'batch': 6,        # SEA 模块使用较小批次
-        'lr0': 0.00008,    # SEA 模块使用较低学习率
-        'epochs': 150,     # SEA 版本需要长训练
-        'warmup_epochs': 15.0, # 较长预热期
-        'amp': False,      # 禁用AMP
-        'cache': False,    # 禁用缓存
+        'batch': 32,
+        'lr0': 0.0004,
+        'epochs': 100,
+        'warmup_epochs': 8.0,
+        'amp': True,
+        'cache': True,
     },
     '4': {
         'file': 'rtdetr-l-sea.yaml',
         'name': 'rtdetr_l_sea',
-        'batch': 10,       # RT-DETR-L + SEA
-        'lr0': 0.0001,     # 标准学习率
-        'epochs': 100,     # 标准训练轮数
-        'warmup_epochs': 10.0, # 一般预热期
-        'amp': False,      # 禁用AMP保证稳定性
-        'cache': True,     # 启用缓存
-    }
+        'batch': 24,
+        'lr0': 0.0004,
+        'epochs': 100,
+        'warmup_epochs': 8.0,
+        'amp': True,
+        'cache': True,
+    },
+    '11': {
+        'file': 'ert-detr.yaml',
+        'name': 'ert_detr',
+        'batch': 48,
+        'lr0': 0.0005,
+        'epochs': 120,
+        'warmup_epochs': 10.0,
+        'amp': False,
+        'cache': True,
+    },
 }
 
-# RTX 4090 优化配置 - 选择要训练的模型 (修改这里来选择不同模型)
-SELECTED_MODEL = '1'  # '1'=RT-DETR-L, '2'=RT-DETR+MNV4, '3'=RT-DETR+MNV4+SEA, '4'=RT-DETR-L+SEA
+# A40 GPU 优化配置 - 选择要训练的模型 (可通过环境变量临时覆盖)
+# 默认使用脚本内定义的选择，但可通过环境变量 `SELECTED_MODEL` 临时覆盖，方便批量实验。
+SELECTED_MODEL = os.environ.get('SELECTED_MODEL', '11')  # '1'=RT-DETR-L, '2'=RT-DETR+MNV4, '3'=RT-DETR+MNV4+SEA, '4'=RT-DETR-L+SEA
 
 # 添加时间估算功能
 def estimate_training_time():
-    """估算训练时间"""
+    """估算训练时间 - A40 GPU优化版"""
     current_model = get_model_config(SELECTED_MODEL)
     
-    # 基于RTX 4090的性能估算 (更新为实际观察值)
-    rtx4090_speeds = {
-        '1': 4.5,    # RT-DETR-L 实际观察速度更新
-        '2': 5.8,    # RT-DETR-MNV4 预计速度
-        '3': 4.2,    # RT-DETR-MNV4-SEA 预计速度
-        '4': 4.0     # RT-DETR-L-SEA 预计速度
+    # 基于A40 GPU的性能估算 (40GB内存，大batch优化)
+    a40_speeds = {
+        '1': 4.5,    # RT-DETR-L A40预计速度
+        '2': 7.2,    # RT-DETR-MNV4 A40预计速度
+        '3': 5.8,    # RT-DETR-MNV4-SEA A40预计速度
+        '4': 5.2,    # RT-DETR-L-SEA A40预计速度
+        '5': 9.5,    # RT-DETR-GhostNet A40预计速度
+        '6': 10.2,   # RT-DETR-ShuffleNet-SEA A40预计速度
+        '7': 8.0,    # RT-DETR-EfficientNet-CBAM A40预计速度
+        '8': 4.8,    # RT-DETR-L-CBAM A40预计速度
+        '9': 12.0,   # RT-DETR-MobileNetV3 A40预计速度
+        '10': 15.0,  # RT-DETR-RepGhostNet A40预计速度
+        '11': 18.0   # ERT-DETR A40预计速度(最轻量)
     }
     
-    estimated_speed = rtx4090_speeds.get(SELECTED_MODEL, 4.0)
-    iterations_per_epoch = 6400 // current_model['batch']  # 更新为新的训练样本数
+    estimated_speed = a40_speeds.get(SELECTED_MODEL, 5.0)
+    iterations_per_epoch = 2285 // current_model['batch']  # HomeObjects-3K训练集样本数 (2285 train images)，batch=24
     seconds_per_epoch = iterations_per_epoch / estimated_speed
     total_hours = (seconds_per_epoch * current_model['epochs']) / 3600
     
@@ -98,56 +116,54 @@ def get_model_config(model_choice):
 current_model = get_model_config(SELECTED_MODEL)
 
 GLOBAL_CONFIG = {
-    # 路径配置 - 使用室内筛选数据集
-    'dataset_path': '/home/cjj/rtdetr_indoor/datasets/coco_indoor/coco_indoor.yaml',
+    # 路径配置 - 使用 HomeObjects-3K 数据集 ✨
+    'dataset_path': '/home/cjj/rtdetr_indoor/datasets/homeobjects-3K/HomeObjects-3K.yaml',
     'model_config': f'/home/cjj/rtdetr_indoor/ultralytics/ultralytics/cfg/models/rt-detr/{current_model["file"]}',
     'save_dir': '/home/cjj/rtdetr_indoor/runs/detect',  # 权重保存目录
-    'project_name': f"train_{current_model['name']}_{time.strftime('%Y%m%d_%H%M%S')}",  # 使用时间戳而非模型名
+    'project_name': f"train_{current_model['name']}_balanced_{time.strftime('%Y%m%d_%H%M%S')}",  # 使用时间戳而非模型名
     
-    # 训练参数 - RTX 4090 优化
+    # 训练参数 - A40 GPU 优化 ⚡
     'epochs': current_model['epochs'],     # 训练轮数
-    'batch_size': current_model['batch'],  # 保守批次
+    'batch_size': current_model['batch'],  # 优化批次
     'img_size': 640,                      # 标准图像大小
-    'workers': 4,   # 🚀 加速：减少workers降低CPU开销
+    'workers': 16,  # ⚡ A40优化: 增加workers到16加速数据加载
     'pin_memory': True,  # 启用加速
-    'patience': 25,                       # ✅ 完整训练：适中的早停容忍度
+    'patience': 15,     # 🚀 A40优化: 提前停止以节省时间
     
-    # 学习率策略 - 保守配置
-    'lr0': current_model['lr0'],          # 使用模型特定学习率
-    'lrf': 0.2,                          # 一般最终学习率因子
+    # 学习率策略 - A40优化配置 ✨
+    'lr0': current_model['lr0'],         # 🚀 直接使用模型特定lr0 (不再乘以2倍)
+    'lrf': 0.01,                         # 最终学习率因子
     'warmup_epochs': current_model['warmup_epochs'], # 使用模型特定预热轮数
     'cos_lr': True,                      # 余弦学习率衰减
     
-    # 优化器设置 - AdamW 更稳定
+    # 优化器设置 - AdamW 稳定性好（针对RT-DETR优化）
     'optimizer': 'AdamW',
-    'weight_decay': 0.0001,              # 保守权重衰减
-    'momentum': 0.937,                   # 保留以兼容配置(AdamW实际使用betas而非momentum)
+    'weight_decay': 0.001,              # ⚡ 增加正则化到0.001防止小数据集过拟合
+    'momentum': 0.937,                   # 保留以兼容配置
     
     # 修复验证问题的关键设置
     'save_period': -1,  # 🚀 加速：仅保存last和best
-    'plots': False,     # 🚀 加速：禁用图表生成
-    'save_json': False, # 🚀 加速：禁用JSON保存
+    'plots': True,     # 🚀 启用图表生成
+    'save_json': True, # 🚀 启用JSON保存
     
-    # 数据增强 - 🚀 极简配置加速
-    'hsv_h': 0.005,          # 🚀 最小化增强
-    'hsv_s': 0.3,            # 🚀 最小化增强
-    'hsv_v': 0.2,            # 🚀 最小化增强
-    'degrees': 0.0,          # 🚀 禁用旋转
-    'translate': 0.05,       # 🚀 最小平移
-    'scale': 0.2,            # 🚀 最小缩放
+    # 数据增强 - ✨ 超强增强提升泛化能力（针对RT-DETR优化）
+    'hsv_h': 0.025,          # ✨ 增加色调增强到0.025
+    'hsv_s': 0.85,           # ✨ 增加饱和度增强到0.85
+    'hsv_v': 0.55,           # ✨ 增加明度增强到0.55
+    'degrees': 20.0,         # ✨ 增加旋转到±20度
+    'translate': 0.25,       # ✨ 增加平移到25%
+    'scale': 0.6,            # ✨ 调整缩放到0.4-1.6倍
     'fliplr': 0.5,           # 保留水平翻转
-    'mosaic': 0.0,           # 🚀 禁用mosaic加速
-    'mixup': 0.0,            # 🚀 禁用mixup加速
-    'copy_paste': 0.0,       # 禁用 copy_paste
+    'mosaic': 1.0,           # ✨ 启用Mosaic增强
+    'mixup': 0.2,            # ✨ 增加MixUp到0.2
+    'copy_paste': 0.1,       # ✨ 轻度启用copy_paste增强
     
-    # RTX 4090 专用优化 - 保守配置
-    'amp': current_model.get('amp', False),    # 禁用 AMP
-    'cache': current_model.get('cache', False), # 禁用缓存
-    'rect': False,             # 关闭矩形训练
+    # A40 GPU 专用优化 - 快速稳定 ⚡
+    'amp': current_model.get('amp', True),     # ⚡ 启用 AMP 混合精度
+    'cache': current_model.get('cache', True), # ⚡ 启用缓存加速
+    'rect': False,             # 关闭矩形训练保持稳定性
     'single_cls': False,
-    'close_mosaic': 10,        # 🚀 加速：提早关闭mosaic
-    
-    # GPU设置 - 稳定性优先，避免确定性警告
+        'close_mosaic': 10,        # 🚀 提前关闭mosaic到第10轮，减少过拟合风险    # GPU设置 - 稳定性优先，避免确定性警告
     'device': '0',             # 使用第一块GPU
     'dnn': False,
     'half': False,             # 禁用half precision
@@ -171,9 +187,9 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "ultralytics"))
 
-def setup_rtx4090_environment():
-    """设置RTX 4090优化环境"""
-    print("🚀 设置RTX 4090优化环境...")
+def setup_a40_environment():
+    """设置A40 GPU优化环境"""
+    print("🚀 设置A40 GPU优化环境...")
     
     # 修复文件描述符限制
     try:
@@ -185,32 +201,18 @@ def setup_rtx4090_environment():
     except Exception as e:
         print(f"   ⚠️ 无法设置文件描述符: {e}")
     
-    # RTX 4090 专用 CUDA 优化 - 最小化配置以避免初始化问题
+    # A40 GPU 专用 CUDA 优化
     os.environ['CUDA_LAUNCH_BLOCKING'] = '0'
-    os.environ['OMP_NUM_THREADS'] = '4'
-    os.environ['MKL_NUM_THREADS'] = '4'
+    os.environ['OMP_NUM_THREADS'] = '8'   # A40优化: 增加到8
+    os.environ['MKL_NUM_THREADS'] = '8'   # A40优化: 增加到8
+    os.environ['NCCL_DEBUG'] = 'WARN'
     
-    # PyTorch 优化设置 - 性能优先
+    # PyTorch 优化设置 - A40性能优先
     torch.backends.cudnn.benchmark = True  # 启用自动优化
     torch.backends.cudnn.deterministic = False
-    # 启用 TF32 加速计算（A40 支持）
+    # 启用 TF32 加速计算（A40 和 H100 都支持）✨ 关键优化
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
-    
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        
-        # 详细GPU信息
-        try:
-            gpu_name = torch.cuda.get_device_name(0)
-            gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1e9
-            print(f"   ✅ GPU: {gpu_name}")
-            print(f"   ✅ 总显存: {gpu_memory:.1f}GB")
-            print(f"   ✅ TF32优化: 已禁用（稳定模式）")
-        except Exception as e:
-            print(f"   ⚠️ GPU信息获取失败: {e}")
-    else:
-        raise RuntimeError("❌ CUDA不可用")
 
 def check_dataset():
     """检查数据集"""
@@ -264,6 +266,9 @@ def setup_save_directory():
 def create_training_config():
     """创建训练配置"""
     print("⚙️ 创建训练配置...")
+    
+    # 获取当前模型配置以应用模型特定的覆盖
+    model_cfg = get_model_config(SELECTED_MODEL)
     
     config = {
         'task': 'detect',
@@ -338,9 +343,9 @@ def create_training_config():
         'save_crop': False,        # 禁用裁剪保存
         'rect': False,             # 确保使用方形图像避免缩放问题
         
-        # 损失权重调整 - 针对RT-DETR优化
+        # 损失权重调整 - 针对RT-DETR优化（增强分类权重）
         'box': 7.5,
-        'cls': 0.5,
+        'cls': 1.0,    # 🚀 提高分类损失权重从0.5到1.0
         'dfl': 1.5,
         
         # 其他设置
@@ -348,26 +353,43 @@ def create_training_config():
         'seed': GLOBAL_CONFIG['seed'],
         'overlap_mask': True,
         'mask_ratio': 4,
-        'dropout': 0.0,  # 禁用dropout以获得更稳定的训练
+        'dropout': 0.1,  # 启用dropout防止过拟合
     }
+    
+    # 应用模型特定的配置覆盖（用于调试和微调）
+    if 'mosaic' in model_cfg:
+        config['mosaic'] = model_cfg['mosaic']
+        print(f"   📌 模型特定覆盖: mosaic = {model_cfg['mosaic']}")
+    if 'mixup' in model_cfg:
+        config['mixup'] = model_cfg['mixup']
+        print(f"   📌 模型特定覆盖: mixup = {model_cfg['mixup']}")
+    if 'weight_decay' in model_cfg:
+        config['weight_decay'] = model_cfg['weight_decay']
+        print(f"   📌 模型特定覆盖: weight_decay = {model_cfg['weight_decay']}")
+    if model_cfg.get('amp') is not None:
+        config['amp'] = model_cfg['amp']
+        print(f"   📌 模型特定覆盖: amp = {model_cfg['amp']}")
+    if model_cfg.get('cache') is not None:
+        config['cache'] = model_cfg['cache']
+        print(f"   📌 模型特定覆盖: cache = {model_cfg['cache']}")
     
     return config
 
 def gpu_memory_monitor():
-    """GPU内存监控 - 更激进的清理"""
+    """GPU内存监控 - A40专用优化"""
     def monitor():
         while True:
             if torch.cuda.is_available():
                 allocated = torch.cuda.memory_allocated(0) / 1e9
-                # 更早触发清理以避免驱动压力
-                if allocated > 12.0:  # 超过12GB时清理，更保守
+                # A40有40GB显存，在25GB时触发清理以保持稳定
+                if allocated > 25.0:  # ⚡ A40优化: 提升阈值到25GB
                     print(f"🧹 触发GPU内存清理: {allocated:.1f}GB")
                     torch.cuda.empty_cache()
                     gc.collect()
                     torch.cuda.synchronize()
                     new_allocated = torch.cuda.memory_allocated(0) / 1e9
                     print(f"   清理后: {new_allocated:.1f}GB")
-            time.sleep(5)  # 更频繁的检查
+            time.sleep(10)  # ⚡ 优化: 增加检查间隔到10秒
     
     monitor_thread = threading.Thread(target=monitor, daemon=True)
     monitor_thread.start()
@@ -421,20 +443,20 @@ def copy_best_weights(results, config):
 
 def main():
     """主训练函数"""
-    print("🏎️ RT-DETR HomeObjects 自动训练器 (RTX 4090优化)")
+    print("🏎️ RT-DETR HomeObjects 自动训练器 (A40 GPU优化)")
     print("=" * 70)
     
     # 显示可选模型
-    print("📋 可选模型配置 (防NaN稳定版):")
+    print("📋 可选模型配置 (A40 GPU极速版):")
     for key, config in MODEL_CONFIGS.items():
         marker = "👉" if key == SELECTED_MODEL else "  "
         print(f"{marker} {key}. {config['file']}")
         print(f"     batch={config['batch']}, lr={config['lr0']}, epochs={config['epochs']}")
-        print(f"     warmup={config['warmup_epochs']}, amp={config['amp']}, cache={config['cache']}")
+        print(f"     AMP={config['amp']}, cache={config['cache']}")
     
-    print(f"\n🎯 当前选择: 模型 {SELECTED_MODEL} (稳定配置)")
+    print(f"\n🎯 当前选择: 模型 {SELECTED_MODEL}")
     print("💡 要更改模型，请修改脚本中的 SELECTED_MODEL 变量")
-    print("🛡️ 所有模型已配置防NaN参数: 低学习率 + 禁用AMP + 长预热期")
+    print("🚀 所有模型已配置A40 GPU加速: 超大batch + AMP + TF32 + 快速预热")
     
     # 训练时间估算
     time_estimate = estimate_training_time()
@@ -469,7 +491,7 @@ def main():
     
     try:
         # 环境设置
-        setup_rtx4090_environment()
+        setup_a40_environment()
         dataset_config = check_dataset()
         save_dir = setup_save_directory()
         
@@ -477,13 +499,15 @@ def main():
         print("\n🎯 最终训练配置:")
         print(f"   模型选择: {SELECTED_MODEL} - {current_model['name']}")
         print(f"   模型文件: {current_model['file']}")
-        print(f"   数据集: HomeObjects扩展版 ({dataset_config['nc']}类)")
+        print(f"   数据集: HomeObjects-3K ({dataset_config['nc']}类) ✨")
         print(f"   批次大小: {GLOBAL_CONFIG['batch_size']}")
         print(f"   训练轮数: {GLOBAL_CONFIG['epochs']}")
-        print(f"   学习率: {GLOBAL_CONFIG['lr0']}")
+        print(f"   学习率: {GLOBAL_CONFIG['lr0']:.6f} ✨")
         print(f"   Workers: {GLOBAL_CONFIG['workers']}")
         print(f"   权重保存: {save_dir}")
         print(f"   预热轮数: {GLOBAL_CONFIG['warmup_epochs']}")
+        print(f"   数据增强: Mosaic={GLOBAL_CONFIG['mosaic']}, MixUp={GLOBAL_CONFIG['mixup']} ✨")
+        print(f"   正则化: weight_decay={GLOBAL_CONFIG['weight_decay']} ✨")
         print("=" * 70)
         
         # 启动内存监控
@@ -516,6 +540,47 @@ def main():
         
         print("⚙️ 创建训练配置...")
         config = create_training_config()
+        # Allow short-term fine-tune overrides via environment variables for quick experiments
+        # e.g. FT_EPOCHS=5 FT_LR0=0.0002 FT_BATCH=24 FT_EMA=True
+        try:
+            ft_epochs = int(os.environ.get('FT_EPOCHS')) if os.environ.get('FT_EPOCHS') else None
+        except Exception:
+            ft_epochs = None
+        try:
+            ft_lr0 = float(os.environ.get('FT_LR0')) if os.environ.get('FT_LR0') else None
+        except Exception:
+            ft_lr0 = None
+        try:
+            ft_batch = int(os.environ.get('FT_BATCH')) if os.environ.get('FT_BATCH') else None
+        except Exception:
+            ft_batch = None
+        ft_ema = os.environ.get('FT_EMA')
+        if ft_epochs is not None:
+            config['epochs'] = ft_epochs
+            print(f"   📌 FT override: epochs = {ft_epochs}")
+        if ft_lr0 is not None:
+            config['lr0'] = ft_lr0
+            print(f"   📌 FT override: lr0 = {ft_lr0}")
+        if ft_batch is not None:
+            config['batch'] = ft_batch
+            print(f"   📌 FT override: batch = {ft_batch}")
+        if ft_ema is not None:
+            # ultralytics train accepts 'ema' arg; convert common truthy strings to bool
+            if ft_ema.lower() in ('1', 'true', 'yes', 'on'):
+                config['ema'] = True
+            elif ft_ema.lower() in ('0', 'false', 'no', 'off'):
+                config['ema'] = False
+            else:
+                config['ema'] = True
+            print(f"   📌 FT override: ema = {config['ema']}")
+        # 支持从指定权重微调：FT_WEIGHTS=/path/to/weights.pt
+        ft_weights = os.environ.get('FT_WEIGHTS')
+        if ft_weights:
+            # Ultralytics accepts 'model' override as a path to a .pt weights file.
+            config['model'] = ft_weights
+            # Ensure resume is False so it will load provided weights as initialization
+            config['resume'] = False
+            print(f"   📌 FT override: model (weights) = {ft_weights}")
         print("✅ 训练配置创建成功")
         
         # 跳过GPU预热，直接创建模型以加快启动
@@ -542,7 +607,10 @@ def main():
             print("🎯 开始模型训练...")
             print("⏳ 这可能需要几分钟来加载数据集和验证配置，请耐心等待...")
             sys.stdout.flush()
-            results = model.train(**{k: v for k, v in config.items() if k != 'model'})
+            # Ultralytics 会校验传入的参数字典，某些内部参数（如 'ema'）可能不被接受。
+            # 从 overrides 中移除未知参数以避免语法错误。
+            overrides = {k: v for k, v in config.items() if k != 'model' and k != 'ema'}
+            results = model.train(**overrides)
             
             training_time = (time.time() - start_time) / 3600  # 转换为小时
             print(f"\n🎉 训练完成! 实际用时: {training_time:.2f} 小时")

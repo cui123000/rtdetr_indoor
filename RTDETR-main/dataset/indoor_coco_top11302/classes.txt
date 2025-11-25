@@ -1,0 +1,8 @@
+toilet
+tv
+refrigerator
+microwave
+sink
+chair
+couch
+bed

@@ -1,0 +1,66 @@
+# ERT-DETR: Efficient Real-Time DETR with Lightweight Attention and Adaptive Pruning
+# 高效实时DETR - 轻量化改进版本
+
+nc: 12  # HomeObjects-3K number of classes
+scales:
+  # [depth, width, max_channels] - 轻量化参数设置
+  n: [0.25, 0.25, 512]   # nano: 极轻量版本
+  s: [0.33, 0.40, 768]   # small: 小型版本  
+  m: [0.50, 0.60, 1024]  # medium: 中型版本
+  l: [0.67, 0.75, 1280]  # large: 大型版本
+
+# 轻量化创新点1: 高效MobileNet-V4骨干网络
+backbone:
+  # Efficient MobileNet-V4 with Lightweight Attention
+  - [-1, 1, Conv, [32, 3, 2]]             # 0-P1/2 stem
+
+  # Stage 1: Lightweight feature extraction  
+  - [-1, 1, MBConv, [64, 3, 1]]           # 1 注意：输入通道自动匹配前一层输出
+  - [-1, 1, MBConv, [64, 3, 2]]           # 2-P2/4
+  - [-1, 1, LightSEA, [64]]               # 3 轻量化SEA注意力
+
+  # Stage 2: Efficient attention integration  
+  - [-1, 1, MBConv, [128, 3, 2]]          # 4-P3/8
+  - [-1, 1, MBConv, [128, 3, 1]]          # 5
+  - [-1, 1, GroupedCBAM, [128]]           # 6 分组CBAM(减少参数)
+
+  # Stage 3: Adaptive feature selection
+  - [-1, 1, MBConv, [256, 3, 2]]          # 7-P4/16
+  - [-1, 1, MBConv, [256, 3, 1]]          # 8
+  - [-1, 1, AdaptiveChannelSelection, [256]] # 9 自适应通道选择
+
+  # Stage 4: Compressed deep features
+  - [-1, 1, MBConv, [512, 3, 2]]          # 10-P5/32
+  - [-1, 1, LinearAttention, [512]]       # 11 线性注意力(O(n)复杂度)
+
+# 轻量化创新点2: 高效特征金字塔网络
+head:
+  # Efficient Feature Pyramid Network
+  - [-1, 1, DWConv, [256, 1, 1]]          # 12 深度可分离投影
+  - [-1, 1, AIFI, [256, 4]]               # 13 减少注意力头数(8->4)
+  - [-1, 1, DWConv, [256, 1, 1]]          # 14, Y5
+
+  # 轻量化上采样融合 - 使用EfficientFusion
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 15
+  - [[-1, 9], 1, Concat, [1]]             # 16, cat P4 with adaptive selection
+  - [-1, 1, EfficientFusion, [256]]       # 17 高效融合模块
+  - [-1, 1, C2f, [256, True]]             # 18
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 19
+  - [[-1, 6], 1, Concat, [1]]             # 20, cat P3 with grouped attention  
+  - [-1, 1, EfficientFusion, [256]]       # 21 高效融合模块
+  - [-1, 1, C2f, [256, True]]             # 22 (P3/8-small)
+
+  # 轻量化下采样 - 使用EfficientFusion
+  - [-1, 1, DWConv, [256, 3, 2]]          # 23 深度可分离下采样
+  - [[-1, 18], 1, Concat, [1]]            # 24, cat P4
+  - [-1, 1, EfficientFusion, [256]]       # 25 高效融合模块
+  - [-1, 1, C2f, [256, True]]             # 26 (P4/16-medium)
+
+  - [-1, 1, DWConv, [256, 3, 2]]          # 27
+  - [[-1, 14], 1, Concat, [1]]            # 28, cat P5
+  - [-1, 1, EfficientFusion, [256]]       # 29 高效融合模块
+  - [-1, 1, C2f, [256, True]]             # 30 (P5/32-large)
+
+  # 轻量化创新点3: 轻量化解码器配置
+  - [[22, 26, 30], 1, RTDETRDecoder, [nc, 256, 300, 6, 8, 6]]  # 恢复更高容量: 查询300, 层数6, 头数8

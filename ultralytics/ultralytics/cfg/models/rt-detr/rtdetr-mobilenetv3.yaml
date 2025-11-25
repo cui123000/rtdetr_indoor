@@ -1,0 +1,51 @@
+# MobileNetV3-Large backbone for RT-DETR
+nc: 12  # HomeObjects-3K number of classes
+scales:
+  # [depth, width, max_channels]
+  n: [0.33, 0.25, 1024]  # RT-DETR-MobileNetV3-nano
+  s: [0.33, 0.50, 1024]  # RT-DETR-MobileNetV3-small
+  m: [0.67, 0.75, 768]   # RT-DETR-MobileNetV3-medium
+  l: [1.00, 1.00, 512]   # RT-DETR-MobileNetV3-large
+
+backbone:
+  # MobileNetV3-Large backbone
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [16, 3, 2]]  # 0-P1/2
+  - [-1, 1, MobileNetV3Block, [16, 16, 3, 1, 1, 're']]   # 1
+  - [-1, 1, MobileNetV3Block, [16, 24, 3, 2, 1, 're']]   # 2-P2/4
+  - [-1, 1, MobileNetV3Block, [24, 24, 3, 1, 1, 're']]   # 3
+  - [-1, 1, MobileNetV3Block, [24, 40, 5, 2, 1, 're']]   # 4-P3/8
+  - [-1, 1, MobileNetV3Block, [40, 40, 5, 1, 1, 're']]   # 5
+  - [-1, 1, MobileNetV3Block, [40, 40, 5, 1, 1, 're']]   # 6
+  - [-1, 1, MobileNetV3Block, [40, 80, 3, 2, 1, 'hs']]   # 7-P4/16
+  - [-1, 1, MobileNetV3Block, [80, 80, 3, 1, 1, 'hs']]   # 8
+  - [-1, 1, MobileNetV3Block, [80, 80, 3, 1, 1, 'hs']]   # 9
+  - [-1, 1, MobileNetV3Block, [80, 80, 3, 1, 1, 'hs']]   # 10
+  - [-1, 1, MobileNetV3Block, [80, 112, 3, 1, 1, 'hs']]  # 11
+  - [-1, 1, MobileNetV3Block, [112, 112, 3, 1, 1, 'hs']] # 12
+  - [-1, 1, MobileNetV3Block, [112, 160, 5, 2, 1, 'hs']] # 13-P5/32
+  - [-1, 1, MobileNetV3Block, [160, 160, 5, 1, 1, 'hs']] # 14
+  - [-1, 1, MobileNetV3Block, [160, 160, 5, 1, 1, 'hs']] # 15
+
+head:
+  - [-1, 1, Conv, [256, 1, 1, None, 1, 1, False]]  # 16 input projection
+  - [-1, 1, AIFI, [256, 8]] # 17
+  - [-1, 1, Conv, [256, 1, 1]]   # 18, Y5, Transformer connection
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 19
+  - [[-1, 12], 1, Concat, [1]]  # 20, cat P4
+  - [-1, 1, RepC3, [256, 0.5]]   # 21
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 22
+  - [[-1, 6], 1, Concat, [1]]   # 23, cat P3
+  - [-1, 1, RepC3, [256, 0.5]]   # 24 (P3/8-small)
+
+  - [-1, 1, Conv, [256, 3, 2]]   # 25
+  - [[-1, 21], 1, Concat, [1]]   # 26, cat P4
+  - [-1, 1, RepC3, [256, 0.5]]   # 27 (P4/16-medium)
+
+  - [-1, 1, Conv, [256, 3, 2]]   # 28
+  - [[-1, 18], 1, Concat, [1]]   # 29, cat P5
+  - [-1, 1, RepC3, [256, 0.5]]   # 30 (P5/32-large)
+
+  - [[24, 27, 30], 1, RTDETRDecoder, [nc, 256, 300, 4, 8, 3]]  # Detect(P3, P4, P5)

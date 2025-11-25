@@ -1,0 +1,11 @@
+# dataset path
+path: /home/cjj/rtdetr_indoor/RTDETR-main
+train: ./dataset/indoor_coco_top11302/images/train
+val: ./dataset/indoor_coco_top11302/images/val
+test: ./dataset/indoor_coco_top11302/images/test
+
+# number of classes
+nc: 8
+
+# class names
+names: ['toilet','tv','refrigerator','microwave','sink','chair','couch','bed']

@@ -111,27 +111,41 @@ def get_rtx4090_config(model_choice):
     """RTX 4090优化的训练配置"""
 
     model_configs = {
-                '1': {
+        '1': {
             'file': 'rtdetr-l.yaml',
             'name': 'rtdetr_l_homeobjects_smart',
-            'batch': 16,       # RTX 4090优化
-            'lr0': 0.003,      # 更大batch对应更高学习率
-            'workers': 6,      # 增加workers提升数据加载速度
+            'batch': 16,
+            'lr0': 0.003,
+            'workers': 6,
         },
         '2': {
-            'file': 'rtdetr-mnv4-hybrid-m.yaml', 
+            'file': 'rtdetr-mnv4-hybrid-m.yaml',
             'name': 'rtdetr_mnv4_hybrid_rtx4090',
-            'batch': 8,        # MNV4混合版本
+            'batch': 8,
             'lr0': 0.0015,
-            'workers': 4,      # 合理的workers数量
+            'workers': 4,
         },
         '3': {
             'file': 'rtdetr-mnv4-hybrid-m-sea.yaml',
             'name': 'rtdetr_mnv4_sea_rtx4090',
-            'batch': 6,        # SEA版本最保守的batch
+            'batch': 6,
             'lr0': 0.0012,
-            'workers': 4,      # 合理的workers数量
-        }   
+            'workers': 4,
+        },
+        '4': {
+            'file': 'rtdetr-l-sea.yaml',
+            'name': 'rtdetr_l_sea_rtx4090',
+            'batch': 12,
+            'lr0': 0.0025,
+            'workers': 5,
+        },
+        '11': {
+            'file': 'ert-detr.yaml',
+            'name': 'ert_detr_rtx4090',
+            'batch': 8,
+            'lr0': 0.0008,
+            'workers': 4,
+        }
     }
 
     if model_choice not in model_configs:

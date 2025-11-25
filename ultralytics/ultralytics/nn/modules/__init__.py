@@ -122,6 +122,15 @@ from .fusion import (
     ASFF_Simple,
     DySample,
 )
+from .ert_detr import (
+    MBConv,
+    LightSEA,
+    GroupedCBAM,
+    AdaptiveChannelSelection,
+    LinearAttention,
+    EfficientFusion,
+    LightRTDETRDecoder,
+)
 
 __all__ = (
     "C1",
@@ -189,6 +198,13 @@ __all__ = (
     "BiFPNLite",
     "RTDETRBiFPNDecoder",
     "ASFF",
-    "ASFF_Simple",
+    "ASFF_Simple", 
     "DySample",
+    "MBConv",
+    "LightSEA",
+    "GroupedCBAM", 
+    "AdaptiveChannelSelection",
+    "LinearAttention",
+    "EfficientFusion",
+    "LightRTDETRDecoder",
 )

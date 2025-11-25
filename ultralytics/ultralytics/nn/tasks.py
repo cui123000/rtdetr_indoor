@@ -84,6 +84,13 @@ from ultralytics.nn.modules import (
     YOLOEDetect,
     YOLOESegment,
     v10Detect,
+    MBConv,
+    LightSEA,
+    GroupedCBAM,
+    AdaptiveChannelSelection,
+    LinearAttention,
+    EfficientFusion,
+    LightRTDETRDecoder,
 )
 from ultralytics.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, YAML, colorstr, emojis
 from ultralytics.utils.checks import check_requirements, check_suffix, check_yaml
@@ -1804,6 +1811,27 @@ def parse_model(d, ch, verbose=True):
                 m.legacy = legacy
         elif m in {RTDETRDecoder, RTDETRBiFPNDecoder}:  # special case, channels arg must be passed in index 1
             args.insert(1, [ch[x] for x in f])
+        elif m in {MBConv, LightSEA, GroupedCBAM, AdaptiveChannelSelection, LinearAttention, EfficientFusion}:
+            # ERT-DETR custom modules: add input channels as first parameter
+            c1 = ch[f]
+            if m in {MBConv}:
+                # MBConv(c1, c2, k, s): yaml format [c2, k, s]
+                c2 = args[0] if len(args) > 0 else c1
+                c2 = make_divisible(min(c2, max_channels) * width, 8)
+                args = [c1, c2, *args[1:]]
+            elif m in {LightSEA, GroupedCBAM, AdaptiveChannelSelection, LinearAttention}:
+                # Attention modules: yaml format [channels] or []
+                c2 = c1  # output same as input
+                if len(args) == 0:
+                    args = [c1]
+                else:
+                    # Use specified channels or keep input channels
+                    args = [c1, *args[1:]] if len(args) > 1 else [c1]
+            elif m in {EfficientFusion}:
+                # EfficientFusion(channels): yaml format [channels] 
+                c2 = args[0] if len(args) > 0 else 256
+                c2 = make_divisible(min(c2, max_channels) * width, 8)
+                args = [c2]
         elif m is CBLinear:
             c2 = args[0]
             c1 = ch[f]
